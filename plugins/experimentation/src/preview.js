@@ -9,6 +9,25 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+window.addEventListener('message', (event) => {
+  if (event.data?.type === 'hlx:experimentation-get-config') {
+      try {
+          const safeClone = JSON.parse(JSON.stringify(window.hlx));
+          
+          event.source.postMessage({
+              type: 'hlx:experimentation-config',
+              config: safeClone,
+              source: 'preview-js'
+          }, '*');
+
+          window.dispatchEvent(new CustomEvent('hlx:experiment-update', {
+              detail: window.hlx?.experiment
+          }));
+      } catch (e) {
+          console.error('Error sending hlx config:', e);
+      }
+  }
+});
 
 const DOMAIN_KEY_NAME = 'aem-domainkey';
 
