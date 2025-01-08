@@ -24,6 +24,14 @@
       "passConfig": true,
       "environments": [ "preview", "live", "edit" ],
       "includePaths": ["**.docx**"]
+    },
+    {
+      "id": "experimentation",
+      "title": "Experimentation",
+      "url": "https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick.html",
+      "isPalette": true,
+      "environments": [ "preview", "live", "edit" ],
+      "includePaths": ["**.docx**"]
     }
   ]
 }
