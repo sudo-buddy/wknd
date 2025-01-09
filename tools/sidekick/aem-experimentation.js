@@ -13,6 +13,7 @@
   }
 
   function handlePluginButtonClick() {
+    console.log('handlePluginButtonClick');
     if (!isAEMExperimentationAppLoaded) {
       loadAEMExperimentationApp();
     }
