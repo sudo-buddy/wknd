@@ -19,7 +19,7 @@
     }
   }
 
-  const sidekick = document.querySelector('helix-sidekick');
+  const sidekick = document.querySelector('aem-sidekick');
   if (sidekick) {
     // sidekick already loaded
     sidekick.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
