@@ -26,7 +26,7 @@
   } else {
     // wait for sidekick to be loaded
     document.addEventListener('sidekick-ready', () => {
-      document.querySelector('helix-sidekick')
+      document.querySelector('aem-sidekick')
         .addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
     }, { once: true });
   }
