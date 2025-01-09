@@ -3,7 +3,7 @@
   
   function loadAEMExperimentationApp() {
       const script = document.createElement('script');
-      script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin&ExpSuccess-aem-experimentation-mfe_version=PR-33-f7ed54bb4da0f60763777a02f54000c89e2c6828';
+      script.src = 'https://experience.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
       script.onload = function () {
           isAEMExperimentationAppLoaded = true;
           // Trigger initial show
