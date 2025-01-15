@@ -1066,12 +1066,8 @@ export async function loadLazy(document, options = {}) {
         event.source.postMessage({
           type: 'hlx:experimentation-config',
           config: safeClone,
-          source: 'preview-js'
+          source: 'index-js'
         }, '*');
-
-        window.dispatchEvent(new CustomEvent('hlx:experiment-update', {
-          detail: window.hlx?.experiment
-        }));
       } catch (e) {
         console.error('Error sending hlx config:', e);
       }
