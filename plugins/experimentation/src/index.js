@@ -822,10 +822,18 @@ async function runExperiment(document, pluginOptions) {
       el.dataset.variant = variant;
       el.classList.add(`experiment-${toClassName(id)}`);
       el.classList.add(`variant-${toClassName(variant)}`);
+      console.log('Dispatching experimentation event:', {
+        type: 'experiment',
+        experiment: id,
+        variant: variant,
+        config: config,
+        element: el
+      });
       document.dispatchEvent(
         new CustomEvent('aem:experimentation', {
           detail: {
             element: el,
+            config: config,
             type: 'experiment',
             experiment: id,
             variant,
