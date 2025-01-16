@@ -1082,7 +1082,6 @@ export async function loadLazy(document, options = {}) {
     }
   });
 
-  // Load remote preview.js
   const preview = await import(
     'https://opensource.adobe.com/aem-experimentation/preview.js'
   );

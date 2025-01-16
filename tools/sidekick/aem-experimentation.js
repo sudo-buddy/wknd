@@ -22,11 +22,13 @@
 
   const sidekick = document.querySelector('aem-sidekick');
   if (sidekick) {
+    console.log('sidekick already loaded');
     // sidekick already loaded
     sidekick.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
   } else {
     // wait for sidekick to be loaded
     document.addEventListener('sidekick-ready', () => {
+      console.log('sidekick-ready');
       document.querySelector('aem-sidekick')
         .addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
     }, { once: true });
