@@ -5,6 +5,7 @@
     script.src = 'https://experience.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
     script.onload = function () {
       isAEMExperimentationAppLoaded = true;
+      handlePluginButtonClick();
     };
     script.onerror = function () {
       console.error('Error loading AEMExperimentationApp.');
@@ -16,6 +17,7 @@
     console.log('handlePluginButtonClick');
     if (!isAEMExperimentationAppLoaded) {
       loadAEMExperimentationApp();
+      return;
     }
   }
 
