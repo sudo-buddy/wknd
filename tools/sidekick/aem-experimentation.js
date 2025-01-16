@@ -19,6 +19,13 @@
       loadAEMExperimentationApp();
       return;
     }
+    
+    // Dispatch the event that client.js is listening for
+    const event = new CustomEvent('custom:aem-experimentation-sidekick');
+    const sidekick = document.querySelector('aem-sidekick') || document.querySelector('helix-sidekick');
+    if (sidekick) {
+        sidekick.dispatchEvent(event);
+    }
   }
 
   const sidekick = document.querySelector('aem-sidekick');
