@@ -1,6 +1,7 @@
 (function () {
   let isAEMExperimentationAppLoaded = false;
   function loadAEMExperimentationApp() {
+    console.log('loadAEMExperimentationApp');
     const script = document.createElement('script');
     script.src = 'https://experience.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
     script.onload = function () {
