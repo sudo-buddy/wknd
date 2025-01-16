@@ -19,15 +19,30 @@
     }
   }
 
-  const sidekick = document.querySelector('aem-sidekick');
-  if (sidekick) {
-    console.log('Sidekick found, adding listener');
-    // Listen for the event WITH the custom: prefix
-    sidekick.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
-  } else {
-    document.addEventListener('sidekick-ready', () => {
-      const sk = document.querySelector('aem-sidekick');
-      sk.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
-    });
+  // Wait for everything to be fully loaded
+  function init() {
+    console.log('Initializing AEM Experimentation');
+    const sidekick = document.querySelector('aem-sidekick');
+    if (sidekick && sidekick.shadowRoot) {
+      console.log('Sidekick found and ready, adding listener');
+      sidekick.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
+    } else {
+      console.log('Sidekick not ready, retrying...');
+      setTimeout(init, 500); // retry after 500ms
+    }
   }
+
+  // Try multiple initialization points
+  // 1. When DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  // 2. When window is fully loaded
+  window.addEventListener('load', init);
+
+  // 3. When sidekick signals it's ready
+  document.addEventListener('sidekick-ready', init);
 }());
