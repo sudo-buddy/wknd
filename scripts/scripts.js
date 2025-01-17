@@ -247,7 +247,7 @@ async function loadLazy(doc) {
 
   // Mark customer as having viewed the page once
   localStorage.setItem('franklin-visitor-returning', true);
-
+  import('../tools/sidekick/aem-experimentation.js');
   window.hlx.plugins.run('loadLazy');
 }
 
