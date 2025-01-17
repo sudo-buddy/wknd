@@ -706,6 +706,22 @@ export async function loadLazy(document, options, context) {
           || options.prodHost === window.location.origin))) {
     return;
   }
+  
+  window.addEventListener('message', (event) => {
+    if (event.data?.type === 'hlx:experimentation-get-config') {
+      try {
+        const safeClone = JSON.parse(JSON.stringify(window.hlx));
+        
+        event.source.postMessage({
+          type: 'hlx:experimentation-config',
+          config: safeClone,
+          source: 'index-js'
+        }, '*');
+      } catch (e) {
+        console.error('Error sending hlx config:', e);
+      }
+    }
+  });
   // eslint-disable-next-line import/no-cycle
   const preview = await import('./preview.js');
   preview.default(document, pluginOptions, { ...context, getResolvedAudiences });
