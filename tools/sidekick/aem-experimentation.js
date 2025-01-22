@@ -16,7 +16,7 @@
           }
 
           const script = document.createElement('script');
-          script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=bookmarklet&ExpSuccess-aem-experimentation-mfe_version=PR-58-a2df0479c97480ea78b4ce5deb08b6c5f989f95f';
+          script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=bookmarklet&ExpSuccess-aem-experimentation-mfe_version=PR-58-8310aca506cbff767cbe5fcbf98c4cc10aa85b55';
           
           script.onload = function () {
               console.log('[AEM Exp] Script loaded successfully');
