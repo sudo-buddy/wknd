@@ -36,7 +36,8 @@
       return scriptLoadPromise;
   }
 
-  function checkExperimentParams() {
+  function checkExperimentParams(retryCount = 0) {
+      const maxRetries = 5;
       const urlParams = new URLSearchParams(window.location.search);
       const experimentParam = urlParams.get('experiment');
       
@@ -45,30 +46,28 @@
           
           if (experimentParam.includes('%2F') || experimentParam.includes('/')) {
               const decodedParam = decodeURIComponent(experimentParam);
-              
               const [experimentId, variantId] = decodedParam.split('/');
+              
               if (experimentId && (
                   variantId?.toLowerCase().includes('challenger') || 
                   variantId?.toLowerCase().includes('control')
               )) {
-                  console.log('[AEM Exp] Parsed values:', { experimentId, variantId });
-                  sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
-                  sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
-                  sessionStorage.setItem('aemExperimentation_variantId', variantId);
-                  
-                  // Wait for sidekick to be ready
-                  const triggerSidekick = () => {
+                  try {
+                      sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
+                      sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
+                      sessionStorage.setItem('aemExperimentation_variantId', variantId);
+                      
                       const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
                       if (sidekick) {
                           console.log('[AEM Exp] Found sidekick, dispatching event');
                           sidekick.dispatchEvent(new CustomEvent('custom:aem-experimentation-sidekick'));
-                      } else {
-                          console.log('[AEM Exp] Waiting for sidekick...');
-                          setTimeout(triggerSidekick, 100);
+                      } else if (retryCount < maxRetries) {
+                          console.log(`[AEM Exp] Sidekick not found, retry ${retryCount + 1}/${maxRetries}`);
+                          setTimeout(() => checkExperimentParams(retryCount + 1), 500);
                       }
-                  };
-
-                  triggerSidekick();
+                  } catch (error) {
+                      console.error('[AEM Exp] Error:', error);
+                  }
               } else {
                   console.log('[AEM Exp] Did not match variant pattern');
               }
@@ -141,4 +140,13 @@
           }
       }
   });
+
+  // Add this to verify storage state
+  function checkStorageState() {
+      console.log('[AEM Exp] Storage state:', {
+          autoOpen: sessionStorage.getItem('aemExperimentation_autoOpen'),
+          experimentId: sessionStorage.getItem('aemExperimentation_experimentId'),
+          variantId: sessionStorage.getItem('aemExperimentation_variantId')
+      });
+  }
 })();
