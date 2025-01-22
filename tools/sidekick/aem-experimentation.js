@@ -42,7 +42,6 @@
       
       if (experimentParam) {
           console.log('[AEM Exp] Raw experiment param:', experimentParam);
-          // Decode the URL parameter first
           const decodedParam = decodeURIComponent(experimentParam);
           console.log('[AEM Exp] Decoded experiment param:', decodedParam);
           
@@ -53,14 +52,20 @@
               sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
               sessionStorage.setItem('aemExperimentation_variantId', variantId || '');
               
-              // Trigger plugin button click
-              const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
-              if (sidekick) {
-                  console.log('[AEM Exp] Found sidekick, dispatching event');
-                  sidekick.dispatchEvent(new CustomEvent('custom:aem-experimentation-sidekick'));
-              } else {
-                  console.log('[AEM Exp] Sidekick not found');
-              }
+              // Wait for sidekick to be ready
+              const triggerSidekick = () => {
+                  const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
+                  if (sidekick) {
+                      console.log('[AEM Exp] Found sidekick, dispatching event');
+                      sidekick.dispatchEvent(new CustomEvent('custom:aem-experimentation-sidekick'));
+                  } else {
+                      console.log('[AEM Exp] Waiting for sidekick...');
+                      setTimeout(triggerSidekick, 100); // retry after 100ms
+                  }
+              };
+
+              // Start checking for sidekick
+              triggerSidekick();
           }
       }
   }
@@ -107,6 +112,12 @@
   } else {
       checkExperimentParams();
   }
+
+  // Also listen for sidekick-ready event
+  document.addEventListener('sidekick-ready', () => {
+      console.log('[AEM Exp] Sidekick ready event received');
+      checkExperimentParams();
+  }, { once: true });
 
   // Handle messages from iframe
   window.addEventListener('message', (event) => {
