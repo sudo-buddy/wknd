@@ -50,6 +50,13 @@
               
               // Split on either encoded or decoded slash
               const [experimentId, variantId] = decodedParam.split('/');
+              console.log('[AEM Exp] Split result:', { 
+                  experimentId, 
+                  variantId,
+                  includesControl: variantId?.toLowerCase().includes('control'),
+                  includesChallenger: variantId?.toLowerCase().includes('challenger')
+              });
+              
               if (experimentId && (
                   variantId?.toLowerCase().includes('challenger') || 
                   variantId?.toLowerCase().includes('control')
@@ -72,7 +79,11 @@
                   };
 
                   triggerSidekick();
+              } else {
+                  console.log('[AEM Exp] Did not match variant pattern');
               }
+          } else {
+              console.log('[AEM Exp] Did not match URL pattern');
           }
       }
   }
