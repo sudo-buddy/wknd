@@ -42,30 +42,34 @@
       
       if (experimentParam) {
           console.log('[AEM Exp] Raw experiment param:', experimentParam);
-          const decodedParam = decodeURIComponent(experimentParam);
-          console.log('[AEM Exp] Decoded experiment param:', decodedParam);
           
-          const [experimentId, variantId] = decodedParam.split('/');
-          if (experimentId) {
-              console.log('[AEM Exp] Parsed values:', { experimentId, variantId });
-              sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
-              sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
-              sessionStorage.setItem('aemExperimentation_variantId', variantId || '');
+          // Check if the parameter matches the pattern: anything followed by /challenger
+          if (experimentParam.includes('%2F') || experimentParam.includes('/')) {
+              const decodedParam = decodeURIComponent(experimentParam);
+              console.log('[AEM Exp] Decoded experiment param:', decodedParam);
               
-              // Wait for sidekick to be ready
-              const triggerSidekick = () => {
-                  const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
-                  if (sidekick) {
-                      console.log('[AEM Exp] Found sidekick, dispatching event');
-                      sidekick.dispatchEvent(new CustomEvent('custom:aem-experimentation-sidekick'));
-                  } else {
-                      console.log('[AEM Exp] Waiting for sidekick...');
-                      setTimeout(triggerSidekick, 100); // retry after 100ms
-                  }
-              };
+              // Split on either encoded or decoded slash
+              const [experimentId, variantId] = decodedParam.split('/');
+              if (experimentId && variantId?.toLowerCase().includes('challenger')) {
+                  console.log('[AEM Exp] Parsed values:', { experimentId, variantId });
+                  sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
+                  sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
+                  sessionStorage.setItem('aemExperimentation_variantId', variantId);
+                  
+                  // Wait for sidekick to be ready
+                  const triggerSidekick = () => {
+                      const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
+                      if (sidekick) {
+                          console.log('[AEM Exp] Found sidekick, dispatching event');
+                          sidekick.dispatchEvent(new CustomEvent('custom:aem-experimentation-sidekick'));
+                      } else {
+                          console.log('[AEM Exp] Waiting for sidekick...');
+                          setTimeout(triggerSidekick, 100);
+                      }
+                  };
 
-              // Start checking for sidekick
-              triggerSidekick();
+                  triggerSidekick();
+              }
           }
       }
   }
