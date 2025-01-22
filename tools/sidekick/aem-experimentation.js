@@ -41,18 +41,37 @@
       const experimentParam = urlParams.get('experiment');
       
       if (experimentParam) {
-          const [experimentId, variantId] = experimentParam.split('/');
+          console.log('[AEM Exp] Raw experiment param:', experimentParam);
+          const decodedParam = decodeURIComponent(experimentParam);
+          console.log('[AEM Exp] Decoded experiment param:', decodedParam);
+          
+          const [experimentId, variantId] = decodedParam.split('/');
           if (experimentId) {
               console.log('[AEM Exp] Found experiment params, auto-opening...');
+              
+              // First ensure storage is set
               sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
               sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
               sessionStorage.setItem('aemExperimentation_variantId', variantId || '');
               
-              // Trigger plugin button click
-              const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
-              if (sidekick) {
-                  sidekick.dispatchEvent(new CustomEvent('custom:aem-experimentation-sidekick'));
-              }
+              // Then directly load the app
+              console.log('[AEM Exp] Loading experimentation app...');
+              loadAEMExperimentationApp().then(() => {
+                  console.log('[AEM Exp] App loaded, showing panel');
+                  const container = document.getElementById('aemExperimentation');
+                  if (container) {
+                      container.classList.remove('aemExperimentationHidden');
+                  }
+                  
+                  // Also trigger the sidekick event as backup
+                  const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
+                  if (sidekick) {
+                      console.log('[AEM Exp] Triggering sidekick event');
+                      sidekick.dispatchEvent(new CustomEvent('custom:aem-experimentation-sidekick'));
+                  }
+              }).catch(error => {
+                  console.error('[AEM Exp] Error loading app:', error);
+              });
           }
       }
   }
