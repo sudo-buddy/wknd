@@ -37,50 +37,56 @@
   }
 
   function checkExperimentParams(retryCount = 0) {
-    const maxRetries = 5;
-    const urlParams = new URLSearchParams(window.location.search);
-    const experimentParam = urlParams.get('experiment');
-    
-    if (experimentParam) {
-        console.log('[AEM Exp] Raw experiment param:', experimentParam);
-        
-        if (experimentParam.includes('%2F') || experimentParam.includes('/')) {
-            const decodedParam = decodeURIComponent(experimentParam);
-            const [experimentId, variantId] = decodedParam.split('/');
-            
-            if (experimentId && (
-                variantId?.toLowerCase().includes('challenger') || 
-                variantId?.toLowerCase().includes('control')
-            )) {
-                try {
-                    const simulationState = sessionStorage.getItem('simulationState');
-                    
-                    // Only set storage and dispatch event if not auto-opening from simulation
-                    if (!simulationState) {
-                        sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
-                        sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
-                        sessionStorage.setItem('aemExperimentation_variantId', variantId);
-                        
-                        const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
-                        if (sidekick) {
-                            console.log('[AEM Exp] Found sidekick, dispatching event');
-                            sidekick.dispatchEvent(new CustomEvent('custom:aem-experimentation-sidekick'));
-                        } else if (retryCount < maxRetries) {
-                            console.log(`[AEM Exp] Sidekick not found, retry ${retryCount + 1}/${maxRetries}`);
-                            setTimeout(() => checkExperimentParams(retryCount + 1), 500);
-                        }
-                    } else {
-                        console.log('[AEM Exp] Simulation in progress, skipping sidekick event');
-                    }
-                } catch (error) {
-                    console.error('[AEM Exp] Error:', error);
-                }
-            }
-        }
-    }
-}
+      const maxRetries = 5;
+      const urlParams = new URLSearchParams(window.location.search);
+      const experimentParam = urlParams.get('experiment');
+      
+      if (experimentParam) {
+          console.log('[AEM Exp] Raw experiment param:', experimentParam);
+          
+          if (experimentParam.includes('%2F') || experimentParam.includes('/')) {
+              const decodedParam = decodeURIComponent(experimentParam);
+              const [experimentId, variantId] = decodedParam.split('/');
+              
+              if (experimentId && (
+                  variantId?.toLowerCase().includes('challenger') || 
+                  variantId?.toLowerCase().includes('control')
+              )) {
+                  try {
+                      // Store experiment info
+                      sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
+                      sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
+                      sessionStorage.setItem('aemExperimentation_variantId', variantId);
+                      
+                      // Load the app directly without clicking sidekick
+                      if (!isAEMExperimentationAppLoaded) {
+                          loadAEMExperimentationApp()
+                              .catch(error => {
+                                  console.error('[AEM Exp] Failed to load:', error);
+                              });
+                      }
+                  } catch (error) {
+                      console.error('[AEM Exp] Error:', error);
+                  }
+              } else {
+                  console.log('[AEM Exp] Did not match variant pattern');
+              }
+          } else {
+              console.log('[AEM Exp] Did not match URL pattern');
+          }
+      }
+  }
+
   function handlePluginButtonClick() {
       console.log('[AEM Exp] Plugin button clicked');
+      const autoOpen = sessionStorage.getItem('aemExperimentation_autoOpen');
+      
+      // Skip if we're in auto-open mode
+      if (autoOpen === 'true') {
+          console.log('[AEM Exp] Skipping load - auto-open in progress');
+          return;
+      }
+      
       if (!isAEMExperimentationAppLoaded) {
           loadAEMExperimentationApp()
               .catch(error => {
@@ -89,15 +95,26 @@
       }
   }
 
+  function setupEventListeners(sidekickElement) {
+      if (sidekickElement) {
+          const autoOpen = sessionStorage.getItem('aemExperimentation_autoOpen');
+          
+          // Only add event listener if not in auto-open mode
+          if (autoOpen !== 'true') {
+              sidekickElement.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
+          }
+      }
+  }
+
   // Initialize Sidekick V1
   const sidekick = document.querySelector('helix-sidekick');
   if (sidekick) {
-      sidekick.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
+      setupEventListeners(sidekick);
   } else {
       document.addEventListener('sidekick-ready', () => {
           const helixSidekick = document.querySelector('helix-sidekick');
           if (helixSidekick) {
-              helixSidekick.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
+              setupEventListeners(helixSidekick);
           }
       }, { once: true });
   }
@@ -105,12 +122,12 @@
   // Initialize Sidekick V2
   const sidekickV2 = document.querySelector('aem-sidekick');
   if (sidekickV2) {
-      sidekickV2.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
+      setupEventListeners(sidekickV2);
   } else {
       document.addEventListener('sidekick-ready', () => {
           const aemSidekick = document.querySelector('aem-sidekick');
           if (aemSidekick) {
-              aemSidekick.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
+              setupEventListeners(aemSidekick);
           }
       }, { once: true });
   }
@@ -142,13 +159,4 @@
           }
       }
   });
-
-  // Add this to verify storage state
-  function checkStorageState() {
-      console.log('[AEM Exp] Storage state:', {
-          autoOpen: sessionStorage.getItem('aemExperimentation_autoOpen'),
-          experimentId: sessionStorage.getItem('aemExperimentation_experimentId'),
-          variantId: sessionStorage.getItem('aemExperimentation_variantId')
-      });
-  }
 })();
