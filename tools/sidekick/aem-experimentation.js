@@ -1,46 +1,117 @@
 (function () {
   let isAEMExperimentationAppLoaded = false;
+  let scriptLoadPromise = null;
+
   function loadAEMExperimentationApp() {
-    const script = document.createElement('script');
-    script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
-    script.onload = function () {
-      isAEMExperimentationAppLoaded = true;
-    };
-    script.onerror = function () {
-      console.error('Error loading Experimentation.');
-    };
-    document.head.appendChild(script);
+      if (scriptLoadPromise) {
+          return scriptLoadPromise;
+      }
+
+      console.log('[AEM Exp] Starting to load AEM Experimentation App');
+      
+      scriptLoadPromise = new Promise((resolve, reject) => {
+          if (isAEMExperimentationAppLoaded) {
+              resolve();
+              return;
+          }
+
+          const script = document.createElement('script');
+          script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=bookmarklet&ExpSuccess-aem-experimentation-mfe_version=PR-58-a2df0479c97480ea78b4ce5deb08b6c5f989f95f';
+          
+          script.onload = function () {
+              console.log('[AEM Exp] Script loaded successfully');
+              isAEMExperimentationAppLoaded = true;
+              resolve();
+          };
+          
+          script.onerror = function (error) {
+              console.error('[AEM Exp] Error loading script:', error);
+              scriptLoadPromise = null;
+              reject(error);
+          };
+
+          document.head.appendChild(script);
+      });
+
+      return scriptLoadPromise;
   }
- 
+
+  function checkExperimentParams() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const experimentParam = urlParams.get('experiment');
+      
+      if (experimentParam) {
+          const [experimentId, variantId] = experimentParam.split('/');
+          if (experimentId) {
+              console.log('[AEM Exp] Found experiment params, auto-opening...');
+              sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
+              sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
+              sessionStorage.setItem('aemExperimentation_variantId', variantId || '');
+              
+              // Trigger plugin button click
+              const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
+              if (sidekick) {
+                  sidekick.dispatchEvent(new CustomEvent('custom:aem-experimentation-sidekick'));
+              }
+          }
+      }
+  }
+
   function handlePluginButtonClick() {
-    if (!isAEMExperimentationAppLoaded) {
-      loadAEMExperimentationApp();
-    }
+      console.log('[AEM Exp] Plugin button clicked');
+      if (!isAEMExperimentationAppLoaded) {
+          loadAEMExperimentationApp()
+              .catch(error => {
+                  console.error('[AEM Exp] Failed to load:', error);
+              });
+      }
   }
- 
-  // The code snippet for the Sidekick V1 extension, https://chromewebstore.google.com/detail/aem-sidekick/ccfggkjabjahcjoljmgmklhpaccedipo?hl=en
+
+  // Initialize Sidekick V1
   const sidekick = document.querySelector('helix-sidekick');
   if (sidekick) {
-    // sidekick already loaded
-    sidekick.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
+      sidekick.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
   } else {
-    // wait for sidekick to be loaded
-    document.addEventListener('sidekick-ready', () => {
-      document.querySelector('helix-sidekick')
-        .addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
-    }, { once: true });
+      document.addEventListener('sidekick-ready', () => {
+          const helixSidekick = document.querySelector('helix-sidekick');
+          if (helixSidekick) {
+              helixSidekick.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
+          }
+      }, { once: true });
   }
- 
-  // The code snippet for the Sidekick V2 extension, https://chromewebstore.google.com/detail/aem-sidekick/igkmdomcgoebiipaifhmpfjhbjccggml?hl=en
+
+  // Initialize Sidekick V2
   const sidekickV2 = document.querySelector('aem-sidekick');
   if (sidekickV2) {
-    // sidekick already loaded
-    sidekickV2.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
+      sidekickV2.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
   } else {
-    // wait for sidekick to be loaded
-    document.addEventListener('sidekick-ready', () => {
-      document.querySelector('aem-sidekick')
-        .addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
-    }, { once: true });
+      document.addEventListener('sidekick-ready', () => {
+          const aemSidekick = document.querySelector('aem-sidekick');
+          if (aemSidekick) {
+              aemSidekick.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
+          }
+      }, { once: true });
   }
-}());
+
+  // Check for experiment parameters on load
+  if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', checkExperimentParams);
+  } else {
+      checkExperimentParams();
+  }
+
+  // Handle messages from iframe
+  window.addEventListener('message', (event) => {
+      if (event.data?.source === 'AEMExperimentation') {
+          if (event.data?.action === 'autoOpenAfterSimulate') {
+              try {
+                  sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
+                  sessionStorage.setItem('aemExperimentation_experimentId', event.data.experimentId);
+                  sessionStorage.setItem('aemExperimentation_variantId', event.data.variantId);
+              } catch (error) {
+                  console.error('[AEM Exp] Storage error:', error);
+              }
+          }
+      }
+  });
+})();
