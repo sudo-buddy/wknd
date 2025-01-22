@@ -53,18 +53,15 @@
                   variantId?.toLowerCase().includes('control')
               )) {
                   try {
-                      // Store experiment info
                       sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
                       sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
                       sessionStorage.setItem('aemExperimentation_variantId', variantId);
                       
-                      // Load the app directly without clicking sidekick
-                      if (!isAEMExperimentationAppLoaded) {
-                          loadAEMExperimentationApp()
-                              .catch(error => {
-                                  console.error('[AEM Exp] Failed to load:', error);
-                              });
-                      }
+                      // Load app directly for auto-open
+                      loadAEMExperimentationApp()
+                          .catch(error => {
+                              console.error('[AEM Exp] Failed to load:', error);
+                          });
                   } catch (error) {
                       console.error('[AEM Exp] Error:', error);
                   }
@@ -79,14 +76,6 @@
 
   function handlePluginButtonClick() {
       console.log('[AEM Exp] Plugin button clicked');
-      const autoOpen = sessionStorage.getItem('aemExperimentation_autoOpen');
-      
-      // Skip if we're in auto-open mode
-      if (autoOpen === 'true') {
-          console.log('[AEM Exp] Skipping load - auto-open in progress');
-          return;
-      }
-      
       if (!isAEMExperimentationAppLoaded) {
           loadAEMExperimentationApp()
               .catch(error => {
@@ -95,26 +84,15 @@
       }
   }
 
-  function setupEventListeners(sidekickElement) {
-      if (sidekickElement) {
-          const autoOpen = sessionStorage.getItem('aemExperimentation_autoOpen');
-          
-          // Only add event listener if not in auto-open mode
-          if (autoOpen !== 'true') {
-              sidekickElement.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
-          }
-      }
-  }
-
   // Initialize Sidekick V1
   const sidekick = document.querySelector('helix-sidekick');
   if (sidekick) {
-      setupEventListeners(sidekick);
+      sidekick.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
   } else {
       document.addEventListener('sidekick-ready', () => {
           const helixSidekick = document.querySelector('helix-sidekick');
           if (helixSidekick) {
-              setupEventListeners(helixSidekick);
+              helixSidekick.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
           }
       }, { once: true });
   }
@@ -122,12 +100,12 @@
   // Initialize Sidekick V2
   const sidekickV2 = document.querySelector('aem-sidekick');
   if (sidekickV2) {
-      setupEventListeners(sidekickV2);
+      sidekickV2.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
   } else {
       document.addEventListener('sidekick-ready', () => {
           const aemSidekick = document.querySelector('aem-sidekick');
           if (aemSidekick) {
-              setupEventListeners(aemSidekick);
+              aemSidekick.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
           }
       }, { once: true });
   }
