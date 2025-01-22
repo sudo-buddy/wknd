@@ -41,9 +41,14 @@
       const experimentParam = urlParams.get('experiment');
       
       if (experimentParam) {
-          const [experimentId, variantId] = experimentParam.split('/');
+          console.log('[AEM Exp] Raw experiment param:', experimentParam);
+          // Decode the URL parameter first
+          const decodedParam = decodeURIComponent(experimentParam);
+          console.log('[AEM Exp] Decoded experiment param:', decodedParam);
+          
+          const [experimentId, variantId] = decodedParam.split('/');
           if (experimentId) {
-              console.log('[AEM Exp] Found experiment params, auto-opening...');
+              console.log('[AEM Exp] Parsed values:', { experimentId, variantId });
               sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
               sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
               sessionStorage.setItem('aemExperimentation_variantId', variantId || '');
@@ -51,7 +56,10 @@
               // Trigger plugin button click
               const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
               if (sidekick) {
+                  console.log('[AEM Exp] Found sidekick, dispatching event');
                   sidekick.dispatchEvent(new CustomEvent('custom:aem-experimentation-sidekick'));
+              } else {
+                  console.log('[AEM Exp] Sidekick not found');
               }
           }
       }
