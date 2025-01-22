@@ -43,14 +43,17 @@
       if (experimentParam) {
           console.log('[AEM Exp] Raw experiment param:', experimentParam);
           
-          // Check if the parameter matches the pattern: anything followed by /challenger
+          // Check if the parameter matches the pattern: anything followed by /control or /challenger
           if (experimentParam.includes('%2F') || experimentParam.includes('/')) {
               const decodedParam = decodeURIComponent(experimentParam);
               console.log('[AEM Exp] Decoded experiment param:', decodedParam);
               
               // Split on either encoded or decoded slash
               const [experimentId, variantId] = decodedParam.split('/');
-              if (experimentId && variantId?.toLowerCase().includes('challenger')) {
+              if (experimentId && (
+                  variantId?.toLowerCase().includes('challenger') || 
+                  variantId?.toLowerCase().includes('control')
+              )) {
                   console.log('[AEM Exp] Parsed values:', { experimentId, variantId });
                   sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
                   sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
