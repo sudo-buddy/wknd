@@ -1082,13 +1082,13 @@ export async function loadLazy(document, options = {}) {
     }
   });
 
-  const preview = await import(
-    'https://opensource.adobe.com/aem-experimentation/preview.js'
-  );
-  const context = {
-    getMetadata,
-    toClassName,
-    debug,
-  };
-  preview.default.call(context, document, pluginOptions);
+  // const preview = await import(
+  //   'https://opensource.adobe.com/aem-experimentation/preview.js'
+  // );
+  // const context = {
+  //   getMetadata,
+  //   toClassName,
+  //   debug,
+  // };
+  // preview.default.call(context, document, pluginOptions);
 }
