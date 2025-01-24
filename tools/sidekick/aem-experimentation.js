@@ -77,48 +77,22 @@
               console.log('[AEM Exp] Found experiment params, auto-opening...');
               isHandlingSimulation = true;
 
-            // Check existing simulation state for source
-            const existingState = sessionStorage.getItem('simulationState');
-            let source = 'plugin'; // default source
-
-            if (existingState) {
-                // If there's existing state, preserve its source (e.g., 'adminUI')
-                source = JSON.parse(existingState).source;
-            }
-
-              // Set simulation state as an object
+              // Set simulation state
               const simulationState = {
                   isSimulation: true,
-                  source: source,
+                  source: 'plugin',
                   experimentId: experimentId,
                   variantId: variantId || 'control',
               };
               sessionStorage.setItem('simulationState', JSON.stringify(simulationState));
-
-              // Ensure storage is set
               sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
               sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
               sessionStorage.setItem('aemExperimentation_variantId', variantId || 'control');
 
-              // Then directly load the app
-              console.log('[AEM Exp] Loading experimentation app...');
+              // Load app and force show
               loadAEMExperimentationApp()
                   .then(() => {
-                      // Wait for container to be created
-                      const waitForContainer = (retries = 0, maxRetries = 20) => {
-                          const container = document.getElementById('aemExperimentation');
-                          if (container) {
-                              console.log('[AEM Exp] Found container, toggling visibility');
-                              toggleExperimentPanel(); // Use toggle instead of force show
-                          } else if (retries < maxRetries) {
-                              console.log(`[AEM Exp] Container not found, retry ${retries + 1}/${maxRetries}`);
-                              setTimeout(() => waitForContainer(retries + 1, maxRetries), 200);
-                          } else {
-                              console.log('[AEM Exp] Container not found after max retries');
-                          }
-                      };
-
-                      waitForContainer();
+                      toggleExperimentPanel(true); // Force show for simulation
                   })
                   .catch((error) => {
                       console.error('[AEM Exp] Error loading app:', error);
@@ -134,7 +108,7 @@
               console.error('[AEM Exp] Failed to load:', error);
           });
       } else {
-          toggleExperimentPanel(); // Always toggle
+          toggleExperimentPanel(); // Always toggle for manual clicks
       }
   }
 
