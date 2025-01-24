@@ -10,7 +10,13 @@
       if (forceShow) {
         container.classList.remove('aemExperimentationHidden');
       } else {
-        container.classList.toggle('aemExperimentationHidden');
+        // Explicitly check current state and toggle
+        const isCurrentlyHidden = container.classList.contains('aemExperimentationHidden');
+        if (isCurrentlyHidden) {
+          container.classList.remove('aemExperimentationHidden');
+        } else {
+          container.classList.add('aemExperimentationHidden');
+        }
       }
       console.log('[AEM Exp] Panel visibility:', {
         isHidden: container.classList.contains('aemExperimentationHidden'),
@@ -108,7 +114,7 @@
               console.error('[AEM Exp] Failed to load:', error);
           });
       } else {
-          toggleExperimentPanel(); // Always toggle for manual clicks
+          toggleExperimentPanel(false); // Explicit toggle for manual clicks
       }
   }
 
