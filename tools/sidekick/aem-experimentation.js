@@ -51,6 +51,15 @@
               console.log('[AEM Exp] Found experiment params, auto-opening...');
               isHandlingSimulation = true;
 
+            // Check existing simulation state for source
+            const existingState = sessionStorage.getItem('simulationState');
+            let source = 'plugin'; // default source
+
+            if (existingState) {
+                // If there's existing state, preserve its source (e.g., 'adminUI')
+                source = JSON.parse(existingState).source;
+            }
+
               // Set simulation state as an object
               const simulationState = {
                   isSimulation: true,
