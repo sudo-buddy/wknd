@@ -108,17 +108,31 @@
   }
 
   function handleSidekickPluginButtonClick() {
-    const panel = document.getElementById('aemExperimentation');
-    if (!panel) return;
-
-    // Always use toggle behavior, regardless of simulation state
-    console.log('[AEM Exp] Toggling panel visibility');
-    const isCurrentlyHidden = panel.classList.contains('aemExperimentationHidden');
-    if (isCurrentlyHidden) {
-        panel.classList.remove('aemExperimentationHidden');
-        aemExperimentationService.reopenApp();
+    console.log('[AEM Exp] Plugin button clicked');
+    if (!isAEMExperimentationAppLoaded) {
+        loadAEMExperimentationApp()
+            .then(() => {
+                const panel = document.getElementById('aemExperimentation');
+                if (panel) {
+                    panel.classList.remove('aemExperimentationHidden');
+                    aemExperimentationService.reopenApp();
+                }
+            })
+            .catch(error => {
+                console.error('[AEM Exp] Failed to load:', error);
+            });
     } else {
-        panel.classList.add('aemExperimentationHidden');
+        // For subsequent clicks, toggle visibility
+        const panel = document.getElementById('aemExperimentation');
+        if (panel) {
+            const isCurrentlyHidden = panel.classList.contains('aemExperimentationHidden');
+            if (isCurrentlyHidden) {
+                panel.classList.remove('aemExperimentationHidden');
+                aemExperimentationService.reopenApp();
+            } else {
+                panel.classList.add('aemExperimentationHidden');
+            }
+        }
     }
   }
 
