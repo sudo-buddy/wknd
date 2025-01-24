@@ -22,15 +22,26 @@
           script.onload = function () {
               console.log('[AEM Exp] Script loaded successfully');
               isAEMExperimentationAppLoaded = true;
-              resolve();
+              
+              // Wait for container to be created
+              const waitForContainer = (retries = 0, maxRetries = 20) => {
+                  const container = document.getElementById('aemExperimentation');
+                  if (container) {
+                      console.log('[AEM Exp] Found container, ensuring visible');
+                      // Remove hidden class if it exists
+                      container.classList.remove('aemExperimentationHidden');
+                      resolve();
+                  } else if (retries < maxRetries) {
+                      setTimeout(() => waitForContainer(retries + 1, maxRetries), 200);
+                  } else {
+                      resolve();
+                  }
+              };
+              
+              waitForContainer();
           };
 
-          script.onerror = function (error) {
-              console.error('[AEM Exp] Error loading script:', error);
-              scriptLoadPromise = null;
-              reject(error);
-          };
-
+          script.onerror = reject;
           document.head.appendChild(script);
       });
 
