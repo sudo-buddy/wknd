@@ -122,10 +122,14 @@
               console.error('[AEM Exp] Failed to load:', error);
           });
       } else {
-          // Show the iframe if it's already loaded
+          // Toggle the iframe visibility if it's already loaded
           const container = document.getElementById('aemExperimentation');
           if (container) {
-              container.classList.remove('aemExperimentationHidden');
+              container.classList.toggle('aemExperimentationHidden');
+              console.log('[AEM Exp] Panel visibility:', {
+                  isHidden: container.classList.contains('aemExperimentationHidden'),
+                  classList: container.classList.toString()
+              });
           }
       }
   }
