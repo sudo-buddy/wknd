@@ -98,7 +98,11 @@
               // Load app and force show
               loadAEMExperimentationApp()
                   .then(() => {
-                      toggleExperimentPanel(true); // Force show for simulation
+                      const panel = document.getElementById('aemExperimentation');
+                      if (panel) {
+                          panel.classList.remove('aemExperimentationHidden');
+                          aemExperimentationService.reopenApp();
+                      }
                   })
                   .catch((error) => {
                       console.error('[AEM Exp] Error loading app:', error);
@@ -109,11 +113,14 @@
 
   function handleSidekickPluginButtonClick() {
     console.log('[AEM Exp] Plugin button clicked');
+    const panel = document.getElementById('aemExperimentation');
+
     if (!isAEMExperimentationAppLoaded) {
+        // First time - load app and show panel
         loadAEMExperimentationApp()
             .then(() => {
-                const panel = document.getElementById('aemExperimentation');
                 if (panel) {
+                    console.log('[AEM Exp] First load - showing panel');
                     panel.classList.remove('aemExperimentationHidden');
                     aemExperimentationService.reopenApp();
                 }
@@ -123,14 +130,10 @@
             });
     } else {
         // For subsequent clicks, toggle visibility
-        const panel = document.getElementById('aemExperimentation');
         if (panel) {
-            const isCurrentlyHidden = panel.classList.contains('aemExperimentationHidden');
-            if (isCurrentlyHidden) {
-                panel.classList.remove('aemExperimentationHidden');
+            panel.classList.toggle('aemExperimentationHidden');
+            if (!panel.classList.contains('aemExperimentationHidden')) {
                 aemExperimentationService.reopenApp();
-            } else {
-                panel.classList.add('aemExperimentationHidden');
             }
         }
     }
