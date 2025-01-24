@@ -54,7 +54,7 @@
               // Set simulation state as an object
               const simulationState = {
                   isSimulation: true,
-                  source: 'plugin',
+                  source: source,
                   experimentId: experimentId,
                   variantId: variantId || 'control',
               };
@@ -132,29 +132,29 @@
   }
 
   // Handle messages from iframe
-  window.addEventListener('message', (event) => {
-      if (event.data?.source === 'AEMExperimentation') {
-          if (event.data?.action === 'autoOpenAfterSimulate' && !isHandlingSimulation) {
-              isHandlingSimulation = true;
-              try {
-                  const simulationState = {
-                      isSimulation: true,
-                      source: 'plugin',
-                      experimentId: event.data.experimentId,
-                      variantId: event.data.variantId || '',
-                  };
-                  sessionStorage.setItem('simulationState', JSON.stringify(simulationState));
-                  sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
-                  sessionStorage.setItem('aemExperimentation_experimentId', event.data.experimentId);
-                  sessionStorage.setItem('aemExperimentation_variantId', event.data.variantId || '');
-              } catch (error) {
-                  console.error('[AEM Exp] Storage error:', error);
-              } finally {
-                  setTimeout(() => {
-                      isHandlingSimulation = false;
-                  }, 500);
-              }
-          }
-      }
-  });
+  // window.addEventListener('message', (event) => {
+  //     if (event.data?.source === 'AEMExperimentation') {
+  //         if (event.data?.action === 'autoOpenAfterSimulate' && !isHandlingSimulation) {
+  //             isHandlingSimulation = true;
+  //             try {
+  //                 const simulationState = {
+  //                     isSimulation: true,
+  //                     source: source,
+  //                     experimentId: event.data.experimentId,
+  //                     variantId: event.data.variantId || '',
+  //                 };
+  //                 sessionStorage.setItem('simulationState', JSON.stringify(simulationState));
+  //                 sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
+  //                 sessionStorage.setItem('aemExperimentation_experimentId', event.data.experimentId);
+  //                 sessionStorage.setItem('aemExperimentation_variantId', event.data.variantId || '');
+  //             } catch (error) {
+  //                 console.error('[AEM Exp] Storage error:', error);
+  //             } finally {
+  //                 setTimeout(() => {
+  //                     isHandlingSimulation = false;
+  //                 }, 500);
+  //             }
+  //         }
+  //     }
+  // });
 })();
