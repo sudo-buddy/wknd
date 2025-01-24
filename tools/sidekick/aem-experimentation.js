@@ -1,6 +1,7 @@
 (function () {
   let isAEMExperimentationAppLoaded = false;
   let scriptLoadPromise = null;
+  let isHandlingSimulation = false;
 
   function loadAEMExperimentationApp() {
       if (scriptLoadPromise) {
@@ -40,7 +41,7 @@
       const urlParams = new URLSearchParams(window.location.search);
       const experimentParam = urlParams.get('experiment');
 
-      if (experimentParam) {
+      if (experimentParam && !isHandlingSimulation) {
           console.log('[AEM Exp] Raw experiment param:', experimentParam);
           const decodedParam = decodeURIComponent(experimentParam);
           console.log('[AEM Exp] Decoded experiment param:', decodedParam);
@@ -48,20 +49,21 @@
           const [experimentId, variantId] = decodedParam.split('/');
           if (experimentId) {
               console.log('[AEM Exp] Found experiment params, auto-opening...');
+              isHandlingSimulation = true;
 
               // Set simulation state as an object
               const simulationState = {
                   isSimulation: true,
                   source: 'plugin',
                   experimentId: experimentId,
-                  variantId: variantId || '',
+                  variantId: variantId || 'control',
               };
               sessionStorage.setItem('simulationState', JSON.stringify(simulationState));
 
               // Ensure storage is set
               sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
               sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
-              sessionStorage.setItem('aemExperimentation_variantId', variantId || '');
+              sessionStorage.setItem('aemExperimentation_variantId', variantId || 'control');
 
               // Then directly load the app
               console.log('[AEM Exp] Loading experimentation app...');
@@ -132,7 +134,8 @@
   // Handle messages from iframe
   window.addEventListener('message', (event) => {
       if (event.data?.source === 'AEMExperimentation') {
-          if (event.data?.action === 'autoOpenAfterSimulate') {
+          if (event.data?.action === 'autoOpenAfterSimulate' && !isHandlingSimulation) {
+              isHandlingSimulation = true;
               try {
                   const simulationState = {
                       isSimulation: true,
@@ -146,6 +149,10 @@
                   sessionStorage.setItem('aemExperimentation_variantId', event.data.variantId || '');
               } catch (error) {
                   console.error('[AEM Exp] Storage error:', error);
+              } finally {
+                  setTimeout(() => {
+                      isHandlingSimulation = false;
+                  }, 500);
               }
           }
       }
