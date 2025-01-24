@@ -3,6 +3,22 @@
   let scriptLoadPromise = null;
   let isHandlingSimulation = false;
 
+  function toggleExperimentPanel(forceShow = false) {
+    const container = document.getElementById('aemExperimentation');
+    if (container) {
+      console.log('[AEM Exp] Panel action:', forceShow ? 'showing' : 'toggling');
+      if (forceShow) {
+        container.classList.remove('aemExperimentationHidden');
+      } else {
+        container.classList.toggle('aemExperimentationHidden');
+      }
+      console.log('[AEM Exp] Panel visibility:', {
+        isHidden: container.classList.contains('aemExperimentationHidden'),
+        classList: container.classList.toString()
+      });
+    }
+  }
+
   function loadAEMExperimentationApp() {
       if (scriptLoadPromise) {
           return scriptLoadPromise;
@@ -27,9 +43,8 @@
               const waitForContainer = (retries = 0, maxRetries = 20) => {
                   const container = document.getElementById('aemExperimentation');
                   if (container) {
-                      console.log('[AEM Exp] Found container, ensuring visible');
-                      // Remove hidden class if it exists
-                      container.classList.remove('aemExperimentationHidden');
+                      console.log('[AEM Exp] Found container on initial load');
+                      toggleExperimentPanel(true); // Force show on initial load
                       resolve();
                   } else if (retries < maxRetries) {
                       setTimeout(() => waitForContainer(retries + 1, maxRetries), 200);
@@ -133,15 +148,7 @@
               console.error('[AEM Exp] Failed to load:', error);
           });
       } else {
-          // Toggle the iframe visibility if it's already loaded
-          const container = document.getElementById('aemExperimentation');
-          if (container) {
-              container.classList.toggle('aemExperimentationHidden');
-              console.log('[AEM Exp] Panel visibility:', {
-                  isHidden: container.classList.contains('aemExperimentationHidden'),
-                  classList: container.classList.toString()
-              });
-          }
+          toggleExperimentPanel(); // Toggle on subsequent clicks
       }
   }
 
