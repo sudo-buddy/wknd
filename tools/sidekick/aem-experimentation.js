@@ -107,28 +107,32 @@
       }
   }
 
-  function handlePluginButtonClick() {
-      console.log('[AEM Exp] Plugin button clicked');
-      if (!isAEMExperimentationAppLoaded) {
-          loadAEMExperimentationApp().catch((error) => {
-              console.error('[AEM Exp] Failed to load:', error);
-          });
-      } else {
-          toggleExperimentPanel(false); // Explicit toggle for manual clicks
-      }
+  function handleSidekickPluginButtonClick() {
+    const panel = document.getElementById('aemExperimentation');
+    if (!panel) return;
+
+    // Always use toggle behavior, regardless of simulation state
+    console.log('[AEM Exp] Toggling panel visibility');
+    const isCurrentlyHidden = panel.classList.contains('aemExperimentationHidden');
+    if (isCurrentlyHidden) {
+        panel.classList.remove('aemExperimentationHidden');
+        aemExperimentationService.reopenApp();
+    } else {
+        panel.classList.add('aemExperimentationHidden');
+    }
   }
 
   // Initialize Sidekick
   const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
   if (sidekick) {
-      sidekick.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
+      sidekick.addEventListener('custom:aem-experimentation-sidekick', handleSidekickPluginButtonClick);
   } else {
       document.addEventListener(
           'sidekick-ready',
           () => {
               const sidekickElement = document.querySelector('helix-sidekick, aem-sidekick');
               if (sidekickElement) {
-                  sidekickElement.addEventListener('custom:aem-experimentation-sidekick', handlePluginButtonClick);
+                  sidekickElement.addEventListener('custom:aem-experimentation-sidekick', handleSidekickPluginButtonClick);
               }
           },
           { once: true }
