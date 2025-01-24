@@ -120,7 +120,7 @@
             .then(() => {
                 if (panel) {
                     console.log('[AEM Exp] First load - showing panel');
-                    panel.classList.remove('aemExperimentationHidden');
+                    toggleExperimentPanel(true); // Use forceShow=true for first load
                     aemExperimentationService.reopenApp();
                 }
             })
@@ -128,13 +128,10 @@
                 console.error('[AEM Exp] Failed to load:', error);
             });
     } else {
-        // For subsequent clicks, toggle visibility
-        if (panel) {
-          console.log('[AEM Exp] xinyiiuiiiii Toggling panel visibility');
-            panel.classList.toggle('aemExperimentationHidden');
-            if (!panel.classList.contains('aemExperimentationHidden')) {
-                aemExperimentationService.reopenApp();
-            }
+        // For subsequent clicks, use toggle
+        toggleExperimentPanel(false); // Use forceShow=false to toggle
+        if (panel && !panel.classList.contains('aemExperimentationHidden')) {
+            aemExperimentationService.reopenApp();
         }
     }
   }
