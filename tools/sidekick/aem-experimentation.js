@@ -9,10 +9,8 @@
       console.log('[AEM Exp] Panel action:', forceShow ? 'showing' : 'toggling');
       
       if (forceShow) {
-        // When forcing show, just remove hidden class
         container.classList.remove('aemExperimentationHidden');
       } else {
-        // For normal toggle, just use toggle()
         container.classList.toggle('aemExperimentationHidden');
       }
 
@@ -98,7 +96,7 @@
                       const panel = document.getElementById('aemExperimentation');
                       if (panel) {
                           panel.classList.remove('aemExperimentationHidden');
-                          aemExperimentationService.reopenApp();
+                          // aemExperimentationService.reopenApp();
                       }
                   })
                   .catch((error) => {
@@ -113,12 +111,11 @@
     const panel = document.getElementById('aemExperimentation');
 
     if (!isAEMExperimentationAppLoaded) {
-        // First time - load app and show panel
         loadAEMExperimentationApp()
             .then(() => {
                 if (panel) {
                     console.log('[AEM Exp] First load - showing panel');
-                    toggleExperimentPanel(true); // Use forceShow=true for first load
+                    toggleExperimentPanel(true); 
                     aemExperimentationService.reopenApp();
                 }
             })
@@ -126,8 +123,7 @@
                 console.error('[AEM Exp] Failed to load:', error);
             });
     } else {
-        // For subsequent clicks, use toggle
-        toggleExperimentPanel(false); // Use forceShow=false to toggle
+        toggleExperimentPanel(false);
         if (panel && !panel.classList.contains('aemExperimentationHidden')) {
             aemExperimentationService.reopenApp();
         }
