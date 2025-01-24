@@ -108,23 +108,9 @@
                       const waitForContainer = (retries = 0, maxRetries = 20) => {
                           const container = document.getElementById('aemExperimentation');
                           if (container) {
-                              console.log('[AEM Exp] Found container, removing hidden class');
-                              container.classList.remove('aemExperimentationHidden');
-                                                  // Add this: Trigger reopening of the app
-                              const shouldAutoOpen = sessionStorage.getItem('aemExperimentation_autoOpen');
-                              if (shouldAutoOpen === 'true') {
-                                  const experimentId = sessionStorage.getItem('aemExperimentation_experimentId');
-                                  const variantId = sessionStorage.getItem('aemExperimentation_variantId');
-                                  
-                                  // Assuming aemExperimentationService is available from client.js
-                                  window.aemExperimentationService?.reopenApp(experimentId, variantId);
-                                  
-                                  // Clear storage after reopening
-                                  sessionStorage.removeItem('aemExperimentation_autoOpen');
-                                  sessionStorage.removeItem('aemExperimentation_experimentId');
-                                  sessionStorage.removeItem('aemExperimentation_variantId');
-                              }
-                                    } else if (retries < maxRetries) {
+                              console.log('[AEM Exp] Found container, toggling visibility');
+                              toggleExperimentPanel(); // Use toggle instead of force show
+                          } else if (retries < maxRetries) {
                               console.log(`[AEM Exp] Container not found, retry ${retries + 1}/${maxRetries}`);
                               setTimeout(() => waitForContainer(retries + 1, maxRetries), 200);
                           } else {
@@ -148,7 +134,7 @@
               console.error('[AEM Exp] Failed to load:', error);
           });
       } else {
-          toggleExperimentPanel(); // Toggle on subsequent clicks
+          toggleExperimentPanel(); // Always toggle
       }
   }
 
