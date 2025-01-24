@@ -2,28 +2,23 @@
   let isAEMExperimentationAppLoaded = false;
   let scriptLoadPromise = null;
   let isHandlingSimulation = false;
-
+  
   function toggleExperimentPanel(forceShow = false) {
     const container = document.getElementById('aemExperimentation');
     if (container) {
-      console.log('[AEM Exp] Panel action:', forceShow ? 'showing' : 'toggling');
-      if (forceShow) {
-        container.classList.remove('aemExperimentationHidden');
-      } else {
-        // Explicitly check current state and toggle
-        const isCurrentlyHidden = container.classList.contains('aemExperimentationHidden');
-        if (isCurrentlyHidden) {
-          container.classList.remove('aemExperimentationHidden');
+        console.log('[AEM Exp] Panel action:', forceShow ? 'showing' : 'toggling');
+        if (forceShow) {
+            container.classList.remove('aemExperimentationHidden');
         } else {
-          container.classList.add('aemExperimentationHidden');
+            // Simple toggle, matching client.js behavior
+            container.classList.toggle('aemExperimentationHidden');
         }
-      }
-      console.log('[AEM Exp] Panel visibility:', {
-        isHidden: container.classList.contains('aemExperimentationHidden'),
-        classList: container.classList.toString()
-      });
+        console.log('[AEM Exp] Panel visibility:', {
+            isHidden: container.classList.contains('aemExperimentationHidden'),
+            classList: container.classList.toString()
+        });
     }
-  }
+}
 
   function loadAEMExperimentationApp() {
       if (scriptLoadPromise) {
