@@ -130,6 +130,7 @@
     } else {
         // For subsequent clicks, toggle visibility
         if (panel) {
+          console.log('[AEM Exp] xinyiiuiiiii Toggling panel visibility');
             panel.classList.toggle('aemExperimentationHidden');
             if (!panel.classList.contains('aemExperimentationHidden')) {
                 aemExperimentationService.reopenApp();
