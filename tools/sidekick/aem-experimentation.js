@@ -116,7 +116,7 @@
                 if (panel) {
                     console.log('[AEM Exp] First load - showing panel');
                     toggleExperimentPanel(true); 
-                    aemExperimentationService.reopenApp();
+                    // aemExperimentationService.reopenApp();
                 }
             })
             .catch(error => {
@@ -124,9 +124,9 @@
             });
     } else {
         toggleExperimentPanel(false);
-        if (panel && !panel.classList.contains('aemExperimentationHidden')) {
-            aemExperimentationService.reopenApp();
-        }
+        // if (panel && !panel.classList.contains('aemExperimentationHidden')) {
+        //     aemExperimentationService.reopenApp();
+        // }
     }
   }
 
