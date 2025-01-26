@@ -81,7 +81,7 @@
               // Set simulation state
               const simulationState = {
                   isSimulation: true,
-                  source: 'plugin',
+                  source: source,
                   experimentId: experimentId,
                   variantId: variantId || 'control',
               };
@@ -109,8 +109,10 @@
   function handleSidekickPluginButtonClick() {
     console.log('[AEM Exp] Plugin button clicked');
     const panel = document.getElementById('aemExperimentation');
+    console.log('panel', panel);
 
     if (!isAEMExperimentationAppLoaded) {
+      console.log('intto11111111111111');
         loadAEMExperimentationApp()
             .then(() => {
                 if (panel) {
@@ -123,6 +125,7 @@
                 console.error('[AEM Exp] Failed to load:', error);
             });
     } else {
+      console.log('intto22222222222222');
         toggleExperimentPanel(false);
         // if (panel && !panel.classList.contains('aemExperimentationHidden')) {
         //     aemExperimentationService.reopenApp();
