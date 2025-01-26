@@ -5,28 +5,40 @@
 
   function toggleExperimentPanel(forceShow = false) {
     const container = document.getElementById('aemExperimentation');
-    if (container) {
-      console.log('[AEM Exp] Panel action:', forceShow ? 'showing' : 'toggling');
-      
+    if (container) {     
       if (forceShow) {
         container.classList.remove('aemExperimentationHidden');
       } else {
         container.classList.toggle('aemExperimentationHidden');
       }
-
-      console.log('[AEM Exp] Panel visibility:', {
-        isHidden: container.classList.contains('aemExperimentationHidden'),
-        classList: container.classList.toString()
-      });
     }
   }
 
+  // loadAEMExperimentationApp
+  //   │
+  //   ├── Already Loading? → Yes → Return existing promise
+  //   │
+  //   ├── Already Loaded? → Yes → Resolve immediately
+  //   │
+  //   ├── Create Script
+  //   │   │
+  //   │   ├── Script Loads Successfully
+  //   │   │   │
+  //   │   │   ├── Mark as loaded
+  //   │   │   │
+  //   │   │   └── Wait for Container (up to 20 retries)
+  //   │   │       │
+  //   │   │       ├── Container Found → Show Panel → Resolve
+  //   │   │       │
+  //   │   │       └── Max Retries → Resolve
+  //   │   │
+  //   │   └── Script Fails → Reject
+  //   │
+  //   └── Return promise
   function loadAEMExperimentationApp() {
       if (scriptLoadPromise) {
           return scriptLoadPromise;
       }
-
-      console.log('[AEM Exp] Starting to load AEM Experimentation App');
 
       scriptLoadPromise = new Promise((resolve, reject) => {
           if (isAEMExperimentationAppLoaded) {
@@ -69,22 +81,20 @@
       const experimentParam = urlParams.get('experiment');
 
       if (experimentParam && !isHandlingSimulation) {
-          console.log('[AEM Exp] Raw experiment param:', experimentParam);
           const decodedParam = decodeURIComponent(experimentParam);
-          console.log('[AEM Exp] Decoded experiment param:', decodedParam);
 
           const [experimentId, variantId] = decodedParam.split('/');
           if (experimentId) {
-              console.log('[AEM Exp] Found experiment params, auto-opening...');
               isHandlingSimulation = true;
-
               // Set simulation state
               const simulationState = {
                   isSimulation: true,
-                  source: source,
+                  source: 'plugin',
                   experimentId: experimentId,
                   variantId: variantId || 'control',
               };
+              console.log('[AEM Exp] Setting simulation state:', simulationState);
+
               sessionStorage.setItem('simulationState', JSON.stringify(simulationState));
               sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
               sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
@@ -96,7 +106,6 @@
                       const panel = document.getElementById('aemExperimentation');
                       if (panel) {
                           panel.classList.remove('aemExperimentationHidden');
-                          // aemExperimentationService.reopenApp();
                       }
                   })
                   .catch((error) => {
@@ -106,30 +115,31 @@
       }
   }
 
+  // Click Button
+  //   │
+  //   ├── First Time? (!isAEMExperimentationAppLoaded)
+  //   │   │
+  //   │   ├── Yes → Load App → Force Show Panel
+  //   │   │
+  //   │   └── No → Toggle Panel Visibility
+  //   │
+  //   └── End
   function handleSidekickPluginButtonClick() {
-    console.log('[AEM Exp] Plugin button clicked');
     const panel = document.getElementById('aemExperimentation');
-    console.log('panel', panel);
 
     if (!isAEMExperimentationAppLoaded) {
-      console.log('intto11111111111111');
         loadAEMExperimentationApp()
             .then(() => {
                 if (panel) {
                     console.log('[AEM Exp] First load - showing panel');
                     toggleExperimentPanel(true); 
-                    // aemExperimentationService.reopenApp();
                 }
             })
             .catch(error => {
                 console.error('[AEM Exp] Failed to load:', error);
             });
     } else {
-      console.log('intto22222222222222');
         toggleExperimentPanel(false);
-        // if (panel && !panel.classList.contains('aemExperimentationHidden')) {
-        //     aemExperimentationService.reopenApp();
-        // }
     }
   }
 
