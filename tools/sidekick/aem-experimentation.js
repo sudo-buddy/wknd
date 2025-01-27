@@ -47,14 +47,16 @@
           }
 
           const script = document.createElement('script');
-          script.src = 'https://experience.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
+          script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=bookmarklet&ExpSuccess-aem-experimentation-mfe_version=PR-58-e5734fea88a18f4e638d70e0adf67c2b791cfe20';
 
           script.onload = function () {
+              console.log('[AEM Exp] Script loaded successfully');
               isAEMExperimentationAppLoaded = true;
               // Wait for container to be created
               const waitForContainer = (retries = 0, maxRetries = 20) => {
                   const container = document.getElementById('aemExperimentation');
                   if (container) {
+                      console.log('[AEM Exp] Found container on initial load');
                       toggleExperimentPanel(true); // Force show on initial load
                       resolve();
                   } else if (retries < maxRetries) {
