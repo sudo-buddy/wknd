@@ -93,9 +93,12 @@
   }
 
   function handleSidekickPluginButtonClick() {
+    console.log('[AEM Exp] handleSidekickPluginButtonClick');
     const panel = document.getElementById('aemExperimentation');
+    console.log('[AEM Exp] panel', panel);
 
     if (!isAEMExperimentationAppLoaded) {
+      console.log('[AEM Exp] Loading app');
         loadAEMExperimentationApp()
             .then(() => {
                 if (panel) {
@@ -113,6 +116,7 @@
 
   // Initialize Sidekick
   const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
+  console.log('[AEM Exp] sidekick', sidekick);
   if (sidekick) {
       sidekick.addEventListener('custom:aem-experimentation-sidekick', handleSidekickPluginButtonClick);
   } else {
