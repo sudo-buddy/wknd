@@ -15,35 +15,56 @@
   }
 
   function loadAEMExperimentationApp() {
-      if (scriptLoadPromise) {
-          return scriptLoadPromise;
-      }
+    if (scriptLoadPromise) {
+        return scriptLoadPromise;
+    }
 
-      scriptLoadPromise = new Promise((resolve, reject) => {
-          if (isAEMExperimentationAppLoaded) {
-              resolve();
-              return;
-          }
+    scriptLoadPromise = new Promise((resolve, reject) => {
+        if (isAEMExperimentationAppLoaded) {
+            resolve();
+            return;
+        }
 
-          const domain = window.location.hostname.includes('localhost') 
-              ? 'https://localhost.corp.adobe.com:8443'
-              : window.location.hostname.includes('stage') 
-                  ? 'https://experience-stage.adobe.com'
-                  : window.location.hostname.includes('qa')
-                      ? 'https://experience-qa.adobe.com'
-                      : 'https://experience.adobe.com';
+        const domain = window.location.hostname.includes('localhost') 
+            ? 'https://localhost.corp.adobe.com:8443'
+            : window.location.hostname.includes('stage') 
+                ? 'https://experience-stage.adobe.com'
+                : window.location.hostname.includes('qa')
+                    ? 'https://experience-qa.adobe.com'
+                    : 'https://experience.adobe.com';
 
-          const script = document.createElement('script');
-          // script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=bookmarklet&ExpSuccess-aem-experimentation-mfe_version=PR-58-e5734fea88a18f4e638d70e0adf67c2b791cfe20';
-          script.src = 'https://experience-stage.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
+        // Store auth data before loading new script
+        const stageAuthData = {
+            token: sessionStorage.getItem('adobeid_ims_access_token/aem-contextual-experimentation-ui/false/AdobeID,additional_info.projectedProductContext,additional_info.roles,openid,read_organizations'),
+            profile: sessionStorage.getItem('adobeid_ims_profile/aem-contextual-experimentation-ui/false/AdobeID,additional_info.projectedProductContext,additional_info.roles,openid,read_organizations'),
+            metrics: sessionStorage.getItem('adobeMetrics.instanceId')
+        };
+
+        if (stageAuthData.token && stageAuthData.profile) {
+            localStorage.setItem('aem_exp_stage_auth', JSON.stringify(stageAuthData));
+        }
+
+        const script = document.createElement('script');
+        script.src = `${domain}/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin`;
 
         script.onload = function () {
             isAEMExperimentationAppLoaded = true;
-            // Wait for container to be created
+            
+            // Restore auth data immediately after script loads
+            const savedAuthData = localStorage.getItem('aem_exp_stage_auth');
+            if (savedAuthData) {
+                const authData = JSON.parse(savedAuthData);
+                sessionStorage.setItem('adobeid_ims_access_token/aem-contextual-experimentation-ui/false/AdobeID,additional_info.projectedProductContext,additional_info.roles,openid,read_organizations', authData.token);
+                sessionStorage.setItem('adobeid_ims_profile/aem-contextual-experimentation-ui/false/AdobeID,additional_info.projectedProductContext,additional_info.roles,openid,read_organizations', authData.profile);
+                if (authData.metrics) {
+                    sessionStorage.setItem('adobeMetrics.instanceId', authData.metrics);
+                }
+            }
+
             const waitForContainer = (retries = 0, maxRetries = 20) => {
                 const container = document.getElementById('aemExperimentation');
                 if (container) {
-                    toggleExperimentPanel(true); // Force show on initial load
+                    toggleExperimentPanel(true);
                     resolve();
                 } else if (retries < maxRetries) {
                     setTimeout(() => waitForContainer(retries + 1, maxRetries), 200);
@@ -55,12 +76,12 @@
             waitForContainer();
         };
 
-          script.onerror = reject;
-          document.head.appendChild(script);
-      });
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
 
-      return scriptLoadPromise;
-  }
+    return scriptLoadPromise;
+}
 
   // function checkExperimentParams() {
   //     const urlParams = new URLSearchParams(window.location.search);
