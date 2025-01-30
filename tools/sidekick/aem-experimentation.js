@@ -25,35 +25,21 @@
             return;
         }
 
-        const domain = window.location.hostname.includes('localhost') 
-            ? 'https://localhost.corp.adobe.com:8443'
-            : window.location.hostname.includes('stage') 
-                ? 'https://experience-stage.adobe.com'
-                : window.location.hostname.includes('qa')
-                    ? 'https://experience-qa.adobe.com'
-                    : 'https://experience.adobe.com';
-
-        // Store auth data before loading new script
-        const stageAuthData = {
+        // Preserve auth data before any operations
+        const authData = {
             token: sessionStorage.getItem('adobeid_ims_access_token/aem-contextual-experimentation-ui/false/AdobeID,additional_info.projectedProductContext,additional_info.roles,openid,read_organizations'),
             profile: sessionStorage.getItem('adobeid_ims_profile/aem-contextual-experimentation-ui/false/AdobeID,additional_info.projectedProductContext,additional_info.roles,openid,read_organizations'),
             metrics: sessionStorage.getItem('adobeMetrics.instanceId')
         };
 
-        if (stageAuthData.token && stageAuthData.profile) {
-            localStorage.setItem('aem_exp_stage_auth', JSON.stringify(stageAuthData));
-        }
-
         const script = document.createElement('script');
-        script.src = `${domain}/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin`;
+        script.src = 'https://experience-stage.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
 
         script.onload = function () {
             isAEMExperimentationAppLoaded = true;
             
-            // Restore auth data immediately after script loads
-            const savedAuthData = localStorage.getItem('aem_exp_stage_auth');
-            if (savedAuthData) {
-                const authData = JSON.parse(savedAuthData);
+            // Restore auth data immediately
+            if (authData.token && authData.profile) {
                 sessionStorage.setItem('adobeid_ims_access_token/aem-contextual-experimentation-ui/false/AdobeID,additional_info.projectedProductContext,additional_info.roles,openid,read_organizations', authData.token);
                 sessionStorage.setItem('adobeid_ims_profile/aem-contextual-experimentation-ui/false/AdobeID,additional_info.projectedProductContext,additional_info.roles,openid,read_organizations', authData.profile);
                 if (authData.metrics) {
@@ -61,10 +47,11 @@
                 }
             }
 
+            // Wait for container to be created
             const waitForContainer = (retries = 0, maxRetries = 20) => {
                 const container = document.getElementById('aemExperimentation');
                 if (container) {
-                    toggleExperimentPanel(true);
+                    toggleExperimentPanel(true); // Force show on initial load
                     resolve();
                 } else if (retries < maxRetries) {
                     setTimeout(() => waitForContainer(retries + 1, maxRetries), 200);
