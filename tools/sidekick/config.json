@@ -23,7 +23,8 @@
         "en": "Experimentation"
       },
       "environments": [
-        "preview"
+        "preview",
+        "live"
       ],
       "includePaths": [
         "**.docx**"
