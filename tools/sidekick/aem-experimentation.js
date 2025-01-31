@@ -84,6 +84,8 @@
 
     if (experimentParam && !isHandlingSimulation) {
         const existingState = JSON.parse(sessionStorage.getItem('simulationState') || '{}');
+        console.log('[AEM Exp] Existing state:', existingState); // Debug log 1
+        
         const decodedParam = decodeURIComponent(experimentParam);
         const [experimentId, variantId] = decodedParam.split('/');
 
@@ -92,22 +94,19 @@
             
             // Set simulation state
             const simulationState = {
-                ...existingState,
+                ...existingState, // This should preserve requiresAuth
                 isSimulation: true,
                 source: 'plugin',
                 experimentId: experimentId,
                 variantId: variantId || 'control',
             };
             
-            console.log('[AEM Exp] Setting simulation state:', simulationState);
+            console.log('[AEM Exp] New simulation state:', simulationState); // Debug log 2
             sessionStorage.setItem('simulationState', JSON.stringify(simulationState));
-            sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
-            sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
-            sessionStorage.setItem('aemExperimentation_variantId', variantId || 'control');
 
             // Check if auth is required
             if (existingState.requiresAuth) {
-                // Force page reload to trigger auth
+                console.log('[AEM Exp] Auth required, reloading page'); // Debug log 3
                 window.location.reload();
                 return;
             }
