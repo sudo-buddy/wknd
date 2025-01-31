@@ -82,6 +82,7 @@
     const urlParams = new URLSearchParams(window.location.search);
     const experimentParam = urlParams.get('experiment');
 
+    // Only proceed with simulation handling if there's an experiment param
     if (experimentParam && !isHandlingSimulation) {
         const decodedParam = decodeURIComponent(experimentParam);
         const [experimentId, variantId] = decodedParam.split('/');
@@ -89,39 +90,42 @@
         if (experimentId) {
             isHandlingSimulation = true;
             
-            // Set simulation state
             const simulationState = {
                 isSimulation: true,
                 source: 'plugin',
                 experimentId: experimentId,
                 variantId: variantId || 'control',
-                requiresAuth: true  // Always set requiresAuth
+                requiresAuth: true
             };
             
-            console.log('[AEM Exp] Setting simulation state:', simulationState);
             sessionStorage.setItem('simulationState', JSON.stringify(simulationState));
             sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
             sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
             sessionStorage.setItem('aemExperimentation_variantId', variantId || 'control');
 
-            // Always reload for simulation
-            console.log('[AEM Exp] Simulation detected, reloading page');
             window.location.reload();
             return;
         }
     }
 
-    // Only load app if not in simulation mode
-    loadAEMExperimentationApp()
-        .then(() => {
-            const panel = document.getElementById('aemExperimentation');
-            if (panel) {
-                panel.classList.remove('aemExperimentationHidden');
-            }
-        })
-        .catch((error) => {
-            console.error('[AEM Exp] Error loading app:', error);
-        });
+    // For non-simulation URLs, only load app if autoOpen is true
+    if (sessionStorage.getItem('aemExperimentation_autoOpen') === 'true') {
+        loadAEMExperimentationApp()
+            .then(() => {
+                const panel = document.getElementById('aemExperimentation');
+                if (panel) {
+                    panel.classList.remove('aemExperimentationHidden');
+                }
+                // Clear autoOpen after showing
+                sessionStorage.removeItem('aemExperimentation_autoOpen');
+            })
+            .catch((error) => {
+                console.error('[AEM Exp] Error loading app:', error);
+            });
+    } else {
+        // Just load app without showing
+        loadAEMExperimentationApp();
+    }
 }
 
   // Click Button
