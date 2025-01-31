@@ -58,7 +58,7 @@ function loadAEMExperimentationApp() {
 
         console.log('[AEM Exp] Loading experimentation app');
         const script = document.createElement('script');
-        script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=bookmarklet&ExpSuccess-aem-experimentation-mfe_version=PR-81-228e179c01b633ca1ffc199b6c80a5774e4a2105';
+        script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=bookmarklet&ExpSuccess-aem-experimentation-mfe_version=PR-81-75f276bfcfbfe3fb02a7bc4c52a23be5262eaea7';
 
         script.onload = function () {
             console.log('[AEM Exp] App script loaded');
