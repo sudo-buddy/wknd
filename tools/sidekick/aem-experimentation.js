@@ -15,73 +15,84 @@
   }
 
   function restoreAuthState() {
-    // Look for stored auth token with the specific IMS key pattern
-    const tokenKey = Object.keys(sessionStorage).find(key => 
-      key.startsWith('adobeid_ims_access_token/aem-contextual-experimentation-ui')
-    );
+    console.log('[AEM Exp] Attempting to restore auth state');
     
-    if (tokenKey) {
-      try {
-        const tokenData = JSON.parse(sessionStorage.getItem(tokenKey));
-        if (tokenData?.tokenValue) {
-          // Store the token in the format expected by the app
-          const newTokenKey = 'adobeid_ims_access_token/aem-contextual-experimentation-ui/false/AdobeID,additional_info.projectedProductContext,additional_info.roles,openid,read_organizations';
-          sessionStorage.setItem(newTokenKey, JSON.stringify({
-            valid: true,
-            client_id: 'aem-contextual-experimentation-ui',
-            tokenValue: tokenData.tokenValue,
-            scope: 'AdobeID,openid,read_organizations,additional_info.projectedProductContext,additional_info.roles'
-          }));
-          return true;
-        }
-      } catch (error) {
-        console.error('[AEM Exp] Error restoring auth state:', error);
-      }
+    // Check for stored auth token
+    const storedAuth = sessionStorage.getItem('aemExperimentation_authToken');
+    if (!storedAuth) {
+        console.log('[AEM Exp] No stored auth found');
+        return false;
     }
-    return false;
-  }
 
-  function loadAEMExperimentationApp() {
+    try {
+        const authData = JSON.parse(storedAuth);
+        console.log('[AEM Exp] Found stored auth data:', authData);
+        
+        // Check if token is still valid (1 hour expiry)
+        if (Date.now() - authData.timestamp > 3600000) {
+            console.log('[AEM Exp] Stored auth expired');
+            sessionStorage.removeItem('aemExperimentation_authToken');
+            return false;
+        }
+
+        // Restore token with original key
+        sessionStorage.setItem(authData.key, JSON.stringify(authData.data));
+        console.log('[AEM Exp] Successfully restored auth state');
+        return true;
+    } catch (error) {
+        console.error('[AEM Exp] Error restoring auth:', error);
+        return false;
+    }
+}
+
+function loadAEMExperimentationApp() {
     if (scriptLoadPromise) {
-      return scriptLoadPromise;
+        return scriptLoadPromise;
     }
 
     scriptLoadPromise = new Promise((resolve, reject) => {
-      if (isAEMExperimentationAppLoaded) {
-        resolve();
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=bookmarklet&ExpSuccess-aem-experimentation-mfe_version=PR-81-e7290652d57c86a04efefe92a9037eb35a3292f7';
-
-      script.onload = function () {
-        isAEMExperimentationAppLoaded = true;
-        
-        // Wait for container to be created
-        const waitForContainer = async (retries = 0, maxRetries = 20) => {
-          const container = document.getElementById('aemExperimentation');
-          if (container) {
-            // Restore auth state before showing panel
-            await restoreAuthState();
-            toggleExperimentPanel(true);
+        if (isAEMExperimentationAppLoaded) {
             resolve();
-          } else if (retries < maxRetries) {
-            setTimeout(() => waitForContainer(retries + 1, maxRetries), 200);
-          } else {
-            resolve();
-          }
+            return;
+        }
+
+        console.log('[AEM Exp] Loading experimentation app');
+        const script = document.createElement('script');
+        script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=bookmarklet&ExpSuccess-aem-experimentation-mfe_version=PR-81-228e179c01b633ca1ffc199b6c80a5774e4a2105';
+
+        script.onload = function () {
+            console.log('[AEM Exp] App script loaded');
+            isAEMExperimentationAppLoaded = true;
+            
+            // Wait for container to be created
+            const waitForContainer = async (retries = 0, maxRetries = 20) => {
+                const container = document.getElementById('aemExperimentation');
+                if (container) {
+                    console.log('[AEM Exp] Container found, restoring auth');
+                    const authRestored = await restoreAuthState();
+                    console.log('[AEM Exp] Auth restored:', authRestored);
+                    
+                    toggleExperimentPanel(true);
+                    resolve();
+                } else if (retries < maxRetries) {
+                    setTimeout(() => waitForContainer(retries + 1, maxRetries), 200);
+                } else {
+                    resolve();
+                }
+            };
+            
+            waitForContainer();
         };
-        
-        waitForContainer();
-      };
 
-      script.onerror = reject;
-      document.head.appendChild(script);
+        script.onerror = (error) => {
+            console.error('[AEM Exp] Failed to load app script:', error);
+            reject(error);
+        };
+        document.head.appendChild(script);
     });
 
     return scriptLoadPromise;
-  }
+}
 
   function checkExperimentParams() {
     const urlParams = new URLSearchParams(window.location.search);
