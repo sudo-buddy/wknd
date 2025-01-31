@@ -83,9 +83,6 @@
     const experimentParam = urlParams.get('experiment');
 
     if (experimentParam && !isHandlingSimulation) {
-        const existingState = JSON.parse(sessionStorage.getItem('simulationState') || '{}');
-        console.log('[AEM Exp] Existing state:', existingState); // Debug log 1
-        
         const decodedParam = decodeURIComponent(experimentParam);
         const [experimentId, variantId] = decodedParam.split('/');
 
@@ -94,36 +91,37 @@
             
             // Set simulation state
             const simulationState = {
-                ...existingState, // This should preserve requiresAuth
                 isSimulation: true,
                 source: 'plugin',
                 experimentId: experimentId,
                 variantId: variantId || 'control',
+                requiresAuth: true  // Always set requiresAuth
             };
             
-            console.log('[AEM Exp] New simulation state:', simulationState); // Debug log 2
+            console.log('[AEM Exp] Setting simulation state:', simulationState);
             sessionStorage.setItem('simulationState', JSON.stringify(simulationState));
+            sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
+            sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
+            sessionStorage.setItem('aemExperimentation_variantId', variantId || 'control');
 
-            // Check if auth is required
-            if (existingState.requiresAuth) {
-                console.log('[AEM Exp] Auth required, reloading page'); // Debug log 3
-                window.location.reload();
-                return;
-            }
-
-            // If no auth required, just load the app
-            loadAEMExperimentationApp()
-                .then(() => {
-                    const panel = document.getElementById('aemExperimentation');
-                    if (panel) {
-                        panel.classList.remove('aemExperimentationHidden');
-                    }
-                })
-                .catch((error) => {
-                    console.error('[AEM Exp] Error loading app:', error);
-                });
+            // Always reload for simulation
+            console.log('[AEM Exp] Simulation detected, reloading page');
+            window.location.reload();
+            return;
         }
     }
+
+    // Only load app if not in simulation mode
+    loadAEMExperimentationApp()
+        .then(() => {
+            const panel = document.getElementById('aemExperimentation');
+            if (panel) {
+                panel.classList.remove('aemExperimentationHidden');
+            }
+        })
+        .catch((error) => {
+            console.error('[AEM Exp] Error loading app:', error);
+        });
 }
 
   // Click Button
