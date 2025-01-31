@@ -81,9 +81,10 @@
   function checkExperimentParams() {
     const urlParams = new URLSearchParams(window.location.search);
     const experimentParam = urlParams.get('experiment');
+    const hasReloaded = sessionStorage.getItem('hasReloaded');
 
-    // Only proceed with simulation handling if there's an experiment param
-    if (experimentParam && !isHandlingSimulation) {
+    // Only proceed with simulation handling if there's an experiment param and we haven't reloaded yet
+    if (experimentParam && !isHandlingSimulation && !hasReloaded) {
         const decodedParam = decodeURIComponent(experimentParam);
         const [experimentId, variantId] = decodedParam.split('/');
 
@@ -102,13 +103,14 @@
             sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
             sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
             sessionStorage.setItem('aemExperimentation_variantId', variantId || 'control');
+            sessionStorage.setItem('hasReloaded', 'true');  // Set reload flag
 
             window.location.reload();
             return;
         }
     }
 
-    // For non-simulation URLs, only load app if autoOpen is true
+    // For non-simulation URLs or after reload, only load app if autoOpen is true
     if (sessionStorage.getItem('aemExperimentation_autoOpen') === 'true') {
         loadAEMExperimentationApp()
             .then(() => {
@@ -118,6 +120,7 @@
                 }
                 // Clear autoOpen after showing
                 sessionStorage.removeItem('aemExperimentation_autoOpen');
+                sessionStorage.removeItem('hasReloaded');  // Clear reload flag
             })
             .catch((error) => {
                 console.error('[AEM Exp] Error loading app:', error);
