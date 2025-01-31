@@ -48,7 +48,7 @@
 
           const script = document.createElement('script');
           // script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=bookmarklet&ExpSuccess-aem-experimentation-mfe_version=PR-58-e5734fea88a18f4e638d70e0adf67c2b791cfe20';
-          script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=bookmarklet&ExpSuccess-aem-experimentation-mfe_version=PR-77-d8be63f0647f297d119ee6f8828c1010935edad1';
+          script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=bookmarklet&ExpSuccess-aem-experimentation-mfe_version=PR-79-4489e23eb607218979d4ed8059a5948df6d455bf';
           // script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
 
           script.onload = function () {
@@ -79,43 +79,53 @@
   }
 
   function checkExperimentParams() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const experimentParam = urlParams.get('experiment');
+    const urlParams = new URLSearchParams(window.location.search);
+    const experimentParam = urlParams.get('experiment');
 
-      if (experimentParam && !isHandlingSimulation) {
-          const decodedParam = decodeURIComponent(experimentParam);
+    if (experimentParam && !isHandlingSimulation) {
+        const existingState = JSON.parse(sessionStorage.getItem('simulationState') || '{}');
+        const decodedParam = decodeURIComponent(experimentParam);
+        const [experimentId, variantId] = decodedParam.split('/');
 
-          const [experimentId, variantId] = decodedParam.split('/');
-          if (experimentId) {
-              isHandlingSimulation = true;
-              // Set simulation state
-              const simulationState = {
-                  isSimulation: true,
-                  source: 'plugin',
-                  experimentId: experimentId,
-                  variantId: variantId || 'control',
-              };
-              console.log('[AEM Exp] Setting simulation state:', simulationState);
+        if (experimentId) {
+            isHandlingSimulation = true;
+            
+            // Set simulation state
+            const simulationState = {
+                ...existingState,
+                isSimulation: true,
+                source: 'plugin',
+                experimentId: experimentId,
+                variantId: variantId || 'control',
+            };
+            
+            console.log('[AEM Exp] Setting simulation state:', simulationState);
+            sessionStorage.setItem('simulationState', JSON.stringify(simulationState));
+            sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
+            sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
+            sessionStorage.setItem('aemExperimentation_variantId', variantId || 'control');
 
-              sessionStorage.setItem('simulationState', JSON.stringify(simulationState));
-              sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
-              sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
-              sessionStorage.setItem('aemExperimentation_variantId', variantId || 'control');
+            // Check if auth is required
+            if (existingState.requiresAuth) {
+                // Force page reload to trigger auth
+                window.location.reload();
+                return;
+            }
 
-              // Load app and force show
-              loadAEMExperimentationApp()
-                  .then(() => {
-                      const panel = document.getElementById('aemExperimentation');
-                      if (panel) {
-                          panel.classList.remove('aemExperimentationHidden');
-                      }
-                  })
-                  .catch((error) => {
-                      console.error('[AEM Exp] Error loading app:', error);
-                  });
-          }
-      }
-  }
+            // If no auth required, just load the app
+            loadAEMExperimentationApp()
+                .then(() => {
+                    const panel = document.getElementById('aemExperimentation');
+                    if (panel) {
+                        panel.classList.remove('aemExperimentationHidden');
+                    }
+                })
+                .catch((error) => {
+                    console.error('[AEM Exp] Error loading app:', error);
+                });
+        }
+    }
+}
 
   // Click Button
   //   │
