@@ -14,27 +14,6 @@
     }
   }
 
-  // loadAEMExperimentationApp
-  //   │
-  //   ├── Already Loading? → Yes → Return existing promise
-  //   │
-  //   ├── Already Loaded? → Yes → Resolve immediately
-  //   │
-  //   ├── Create Script
-  //   │   │
-  //   │   ├── Script Loads Successfully
-  //   │   │   │
-  //   │   │   ├── Mark as loaded
-  //   │   │   │
-  //   │   │   └── Wait for Container (up to 20 retries)
-  //   │   │       │
-  //   │   │       ├── Container Found → Show Panel → Resolve
-  //   │   │       │
-  //   │   │       └── Max Retries → Resolve
-  //   │   │
-  //   │   └── Script Fails → Reject
-  //   │
-  //   └── Return promise
   function loadAEMExperimentationApp() {
       if (scriptLoadPromise) {
           return scriptLoadPromise;
@@ -47,18 +26,15 @@
           }
 
           const script = document.createElement('script');
-          // script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=bookmarklet&ExpSuccess-aem-experimentation-mfe_version=PR-58-e5734fea88a18f4e638d70e0adf67c2b791cfe20';
-          script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=bookmarklet&ExpSuccess-aem-experimentation-mfe_version=PR-80-f180c014eec580ac875fc60142928b6f336900fa';
+          script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=bookmarklet&ExpSuccess-aem-experimentation-mfe_version=PR-58-e5734fea88a18f4e638d70e0adf67c2b791cfe20';
           // script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
 
           script.onload = function () {
-              console.log('[AEM Exp] Script loaded successfully');
               isAEMExperimentationAppLoaded = true;
               // Wait for container to be created
               const waitForContainer = (retries = 0, maxRetries = 20) => {
                   const container = document.getElementById('aemExperimentation');
                   if (container) {
-                      console.log('[AEM Exp] Found container on initial load');
                       toggleExperimentPanel(true); // Force show on initial load
                       resolve();
                   } else if (retries < maxRetries) {
@@ -79,67 +55,44 @@
   }
 
   function checkExperimentParams() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const experimentParam = urlParams.get('experiment');
-    const hasReloaded = sessionStorage.getItem('hasReloaded');
+      const urlParams = new URLSearchParams(window.location.search);
+      const experimentParam = urlParams.get('experiment');
 
-    // Only proceed with simulation handling if there's an experiment param and we haven't reloaded yet
-    if (experimentParam && !isHandlingSimulation && !hasReloaded) {
-        const decodedParam = decodeURIComponent(experimentParam);
-        const [experimentId, variantId] = decodedParam.split('/');
+      if (experimentParam && !isHandlingSimulation) {
+          const decodedParam = decodeURIComponent(experimentParam);
 
-        if (experimentId) {
-            isHandlingSimulation = true;
-            
-            const simulationState = {
-                isSimulation: true,
-                source: 'plugin',
-                experimentId: experimentId,
-                variantId: variantId || 'control',
-                requiresAuth: true
-            };
-            
-            sessionStorage.setItem('simulationState', JSON.stringify(simulationState));
-            sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
-            sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
-            sessionStorage.setItem('aemExperimentation_variantId', variantId || 'control');
-            sessionStorage.setItem('hasReloaded', 'true');  // Set reload flag
+          const [experimentId, variantId] = decodedParam.split('/');
+          if (experimentId) {
+              isHandlingSimulation = true;
+              // Set simulation state
+              const simulationState = {
+                  isSimulation: true,
+                  source: 'plugin',
+                  experimentId: experimentId,
+                  variantId: variantId || 'control',
+              };
+              console.log('[AEM Exp] Setting simulation state:', simulationState);
 
-            window.location.reload();
-            return;
-        }
-    }
+              sessionStorage.setItem('simulationState', JSON.stringify(simulationState));
+              sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
+              sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
+              sessionStorage.setItem('aemExperimentation_variantId', variantId || 'control');
 
-    // For non-simulation URLs or after reload, only load app if autoOpen is true
-    if (sessionStorage.getItem('aemExperimentation_autoOpen') === 'true') {
-        loadAEMExperimentationApp()
-            .then(() => {
-                const panel = document.getElementById('aemExperimentation');
-                if (panel) {
-                    panel.classList.remove('aemExperimentationHidden');
-                }
-                // Clear autoOpen after showing
-                sessionStorage.removeItem('aemExperimentation_autoOpen');
-                sessionStorage.removeItem('hasReloaded');  // Clear reload flag
-            })
-            .catch((error) => {
-                console.error('[AEM Exp] Error loading app:', error);
-            });
-    } else {
-        // Just load app without showing
-        loadAEMExperimentationApp();
-    }
-}
+              // Load app and force show
+              loadAEMExperimentationApp()
+                  .then(() => {
+                      const panel = document.getElementById('aemExperimentation');
+                      if (panel) {
+                          panel.classList.remove('aemExperimentationHidden');
+                      }
+                  })
+                  .catch((error) => {
+                      console.error('[AEM Exp] Error loading app:', error);
+                  });
+          }
+      }
+  }
 
-  // Click Button
-  //   │
-  //   ├── First Time? (!isAEMExperimentationAppLoaded)
-  //   │   │
-  //   │   ├── Yes → Load App → Force Show Panel
-  //   │   │
-  //   │   └── No → Toggle Panel Visibility
-  //   │
-  //   └── End
   function handleSidekickPluginButtonClick() {
     const panel = document.getElementById('aemExperimentation');
 
@@ -182,31 +135,4 @@
   } else {
       checkExperimentParams();
   }
-
-  // Handle messages from iframe
-  // window.addEventListener('message', (event) => {
-  //     if (event.data?.source === 'AEMExperimentation') {
-  //         if (event.data?.action === 'autoOpenAfterSimulate' && !isHandlingSimulation) {
-  //             isHandlingSimulation = true;
-  //             try {
-  //                 const simulationState = {
-  //                     isSimulation: true,
-  //                     source: source,
-  //                     experimentId: event.data.experimentId,
-  //                     variantId: event.data.variantId || '',
-  //                 };
-  //                 sessionStorage.setItem('simulationState', JSON.stringify(simulationState));
-  //                 sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
-  //                 sessionStorage.setItem('aemExperimentation_experimentId', event.data.experimentId);
-  //                 sessionStorage.setItem('aemExperimentation_variantId', event.data.variantId || '');
-  //             } catch (error) {
-  //                 console.error('[AEM Exp] Storage error:', error);
-  //             } finally {
-  //                 setTimeout(() => {
-  //                     isHandlingSimulation = false;
-  //                 }, 500);
-  //             }
-  //         }
-  //     }
-  // });
 })();
