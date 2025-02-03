@@ -26,7 +26,7 @@
           }
 
           const script = document.createElement('script');
-          script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=bookmarklet&ExpSuccess-aem-experimentation-mfe_version=PR-86-81f797a13aceb25db25b0087a9b705c2bf3351cd';
+          script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=bookmarklet&ExpSuccess-aem-experimentation-mfe_version=PR-86-4386408e270d1cedeb0a06efad4dc81d6ccd0412';
 
           script.onload = function () {
               isAEMExperimentationAppLoaded = true;
@@ -79,15 +79,23 @@
 
               // Load app and force show
               loadAEMExperimentationApp()
-                  .then(() => {
-                      const panel = document.getElementById('aemExperimentation');
-                      if (panel) {
-                          panel.classList.remove('aemExperimentationHidden');
-                      }
-                  })
-                  .catch((error) => {
-                      console.error('[AEM Exp] Error loading app:', error);
-                  });
+              .then(() => {
+                const panel = document.getElementById('aemExperimentation');
+                if (panel) {
+                  panel.classList.remove('aemExperimentationHidden');
+                }
+                // Pass the simulation state to the iframe using postMessage
+                const iframe = document.getElementById('aemExperimentationIFrameContent');
+                if (iframe && iframe.contentWindow) {
+                  iframe.contentWindow.postMessage({
+                    type: 'simulationState',
+                    simulationState
+                  }, 'https://experience-qa.adobe.com');
+                }
+              })
+              .catch((error) => {
+                console.error('[AEM Exp] Error loading app:', error);
+              });
           }
       }
   }
