@@ -90,7 +90,7 @@
                   iframe.contentWindow.postMessage({
                     type: 'simulationState',
                     simulationState
-                  }, 'https://experience-qa.adobe.com');
+                  }, '*');
                 }
               })
               .catch((error) => {
