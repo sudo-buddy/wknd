@@ -203,7 +203,7 @@
           }
 
           const script = document.createElement('script');
-          script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=bookmarklet&ExpSuccess-aem-experimentation-mfe_version=PR-88-6de42b4149bea6509146f435e3718e50d629b8e0';
+          script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=bookmarklet&ExpSuccess-aem-experimentation-mfe_version=PR-88-0edf1bd53aadc63660dc7e27070f0d7fceb9f2b9';
 
           script.onload = function () {
               isAEMExperimentationAppLoaded = true;
