@@ -17,7 +17,7 @@ window.addEventListener('message', (event) => {
           event.source.postMessage({
               type: 'hlx:experimentation-config',
               config: safeClone,
-              source: 'preview-js'
+              source: 'index-js'
           }, '*');
 
           window.dispatchEvent(new CustomEvent('hlx:experiment-update', {
@@ -208,6 +208,7 @@ async function fetchRumData(experiment, options) {
     console.warn('Cannot show RUM data. No `domainKey` configured.');
     return null;
   }
+
   if (!options.prodHost && (typeof options.isProd !== 'function' || !options.isProd())) {
     // eslint-disable-next-line no-console
     console.warn('Cannot show RUM data. No `prodHost` configured or custom `isProd` method provided.');
