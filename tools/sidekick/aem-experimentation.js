@@ -1,6 +1,7 @@
 (function () {
   let isAEMExperimentationAppLoaded = false;
   let scriptLoadPromise = null;
+  let isHandlingSimulation = false;
 
   function toggleExperimentPanel(forceShow = false) {
       const container = document.getElementById('aemExperimentation');
@@ -29,23 +30,23 @@
       });
   }
 
-  function waitForSidekick() {
-      return new Promise((resolve) => {
-          const check = () => {
-              const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
-              if (sidekick) {
-                  console.log('[AEM Exp] Sidekick ready');
-                  resolve(sidekick);
-              } else {
-                  console.log('[AEM Exp] Waiting for sidekick...');
-                  setTimeout(check, 100);
-              }
-          };
-          check();
-      });
-  }
-
   function loadAEMExperimentationApp(isSimulation = false) {
+      if (isSimulation && !isHandlingSimulation) {
+          console.log('[AEM Exp] Starting simulation');
+          isHandlingSimulation = true;
+          // Simulate the click manually
+          handleSidekickPluginButtonClick();
+          return waitForAuth().then(() => {
+              const container = document.getElementById('aemExperimentation');
+              if (container) {
+                  container.classList.remove('aemExperimentationHidden');
+                  console.log('[AEM Exp] Container shown after auth ready');
+              }
+              isHandlingSimulation = false;
+          });
+      }
+
+      // Original first-load logic
       if (!isAEMExperimentationAppLoaded) {
           scriptLoadPromise = new Promise((resolve, reject) => {
               const script = document.createElement('script');
@@ -61,28 +62,14 @@
       return scriptLoadPromise;
   }
 
-  function handleSidekickPluginButtonClick(isAuto = false) {
-      console.log('[AEM Exp] Handle button click, isAuto:', isAuto);
+  function handleSidekickPluginButtonClick() {
       const panel = document.getElementById('aemExperimentation');
-
       if (!isAEMExperimentationAppLoaded) {
           loadAEMExperimentationApp()
               .then(() => {
                   if (panel) {
                       console.log('[AEM Exp] First load - showing panel');
                       toggleExperimentPanel(true);
-                      
-                      // If auto mode, wait for auth and then trigger the real click
-                      if (isAuto) {
-                          return waitForAuth().then(() => {
-                              console.log('[AEM Exp] Auth ready, triggering real click');
-                              const sidekick = document.querySelector('aem-sidekick');
-                              if (sidekick) {
-                                  const event = new CustomEvent('custom:aem-experimentation-sidekick');
-                                  sidekick.dispatchEvent(event);
-                              }
-                          });
-                      }
                   }
               })
               .catch(error => {
@@ -93,28 +80,30 @@
       }
   }
 
+  // This function now triggers the auto-launch (simulation) branch.
   function checkExperimentParams() {
-      console.log('[AEM Exp] Starting checkExperimentParams');
-      waitForSidekick()
+      console.log('[AEM Exp] checkExperimentParams called');
+      // Always use simulation branch here
+      loadAEMExperimentationApp(true)
           .then(() => {
-              handleSidekickPluginButtonClick(true); // Pass true for auto mode
+              console.log('[AEM Exp] Simulation branch completed.');
           })
-          .catch(error => {
-              console.error('[AEM Exp] Failed in checkExperimentParams:', error);
+          .catch((err) => {
+              console.error('[AEM Exp] Simulation branch error:', err);
           });
   }
 
-  // Initialize Sidekick
+  // Initialize Sidekick (manual click handler)
   const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
   if (sidekick) {
-      sidekick.addEventListener('custom:aem-experimentation-sidekick', () => handleSidekickPluginButtonClick(false));
+      sidekick.addEventListener('custom:aem-experimentation-sidekick', handleSidekickPluginButtonClick);
   } else {
       document.addEventListener(
           'sidekick-ready',
           () => {
               const sidekickElement = document.querySelector('helix-sidekick, aem-sidekick');
               if (sidekickElement) {
-                  sidekickElement.addEventListener('custom:aem-experimentation-sidekick', () => handleSidekickPluginButtonClick(false));
+                  sidekickElement.addEventListener('custom:aem-experimentation-sidekick', handleSidekickPluginButtonClick);
               }
           },
           { once: true }
