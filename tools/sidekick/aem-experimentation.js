@@ -31,52 +31,39 @@
   }
 
   function loadAEMExperimentationApp(isSimulation = false) {
-      if (isSimulation && !isHandlingSimulation) {
-          console.log('[AEM Exp] Starting simulation');
-          isHandlingSimulation = true;
+    if (isSimulation && !isHandlingSimulation) {
+        console.log('[AEM Exp] Starting simulation');
+        isHandlingSimulation = true;
 
-          // First load the script
-          return new Promise((resolve, reject) => {
-              const script = document.createElement('script');
-              script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
-              script.onload = function() {
-                  isAEMExperimentationAppLoaded = true;
-                  console.log('[AEM Exp] Script loaded');
-                  
-                  // Wait briefly for client.js to initialize
-                  setTimeout(() => {
-                      waitForAuth().then(() => {
-                          const container = document.getElementById('aemExperimentation');
-                          if (container) {
-                              container.classList.remove('aemExperimentationHidden');
-                              console.log('[AEM Exp] Container shown after auth ready');
-                          }
-                          isHandlingSimulation = false;
-                          resolve();
-                      });
-                  }, 100);
-              };
-              script.onerror = reject;
-              document.head.appendChild(script);
-          });
-      }
+        // Directly call the click handler instead of dispatching event
+        handleSidekickPluginButtonClick();
 
-      // Original first-load logic
-      if (!isAEMExperimentationAppLoaded) {
-          scriptLoadPromise = new Promise((resolve, reject) => {
-              const script = document.createElement('script');
-              script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
-              script.onload = function() {
-                  isAEMExperimentationAppLoaded = true;
-                  resolve();
-              };
-              script.onerror = reject;
-              document.head.appendChild(script);
-          });
-      }
+        return waitForAuth().then(() => {
+            const container = document.getElementById('aemExperimentation');
+            if (container) {
+                container.classList.remove('aemExperimentationHidden');
+                console.log('[AEM Exp] Container shown after auth ready');
+            }
+            isHandlingSimulation = false;
+        });
+    }
 
-      return scriptLoadPromise;
-  }
+    // Original first-load logic
+    if (!isAEMExperimentationAppLoaded) {
+        scriptLoadPromise = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
+            script.onload = function() {
+                isAEMExperimentationAppLoaded = true;
+                resolve();
+            };
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
+    return scriptLoadPromise;
+}
 
   // Helper functions from client.js
   function stripTrailingSlash(url) {
