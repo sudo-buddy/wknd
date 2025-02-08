@@ -47,8 +47,27 @@
 }
 
 function checkExperimentParams() {
-  // Call loadAEMExperimentationApp with isSimulation = true
-  loadAEMExperimentationApp(true)
+  // Wait for sidekick first
+  waitForSidekick()
+      .then((sidekick) => {
+          // Find the actual button in sidekick
+          const buttons = sidekick.shadowRoot.querySelectorAll('button');
+          let expButton;
+          for (const button of buttons) {
+              if (button.textContent.includes('Experimentation')) {
+                  expButton = button;
+                  break;
+              }
+          }
+          
+          if (expButton) {
+              // Trigger the real click
+              console.log('[AEM Exp] Found experimentation button, clicking');
+              expButton.click();
+          } else {
+              console.error('[AEM Exp] Could not find experimentation button');
+          }
+      })
       .catch(error => {
           console.error('[AEM Exp] Failed to initialize:', error);
       });
