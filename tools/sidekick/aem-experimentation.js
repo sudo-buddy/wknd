@@ -31,29 +31,33 @@
   }
 
   function loadAEMExperimentationApp(isSimulation = false) {
-      if (isSimulation) {
+      if (isSimulation && !isHandlingSimulation) {
           console.log('[AEM Exp] Starting simulation');
-          
-          // Remove existing container if any
-          const existingContainer = document.getElementById('aemExperimentation');
-          if (existingContainer) {
-              existingContainer.remove();
-          }
+          isHandlingSimulation = true;
 
-          // Reset states
-          isAEMExperimentationAppLoaded = false;
-          scriptLoadPromise = null;
-
-          // Simulate button click to load everything naturally
-          const event = new CustomEvent('custom:aem-experimentation-sidekick');
-          document.querySelector('helix-sidekick, aem-sidekick')?.dispatchEvent(event);
-
-          return waitForAuth().then(() => {
-              const container = document.getElementById('aemExperimentation');
-              if (container) {
-                  container.classList.remove('aemExperimentationHidden');
-                  console.log('[AEM Exp] Container shown after auth ready');
-              }
+          // First load the script
+          return new Promise((resolve, reject) => {
+              const script = document.createElement('script');
+              script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
+              script.onload = function() {
+                  isAEMExperimentationAppLoaded = true;
+                  console.log('[AEM Exp] Script loaded');
+                  
+                  // Wait briefly for client.js to initialize
+                  setTimeout(() => {
+                      waitForAuth().then(() => {
+                          const container = document.getElementById('aemExperimentation');
+                          if (container) {
+                              container.classList.remove('aemExperimentationHidden');
+                              console.log('[AEM Exp] Container shown after auth ready');
+                          }
+                          isHandlingSimulation = false;
+                          resolve();
+                      });
+                  }, 100);
+              };
+              script.onerror = reject;
+              document.head.appendChild(script);
           });
       }
 
@@ -73,8 +77,6 @@
 
       return scriptLoadPromise;
   }
-
-  // Rest of your code stays the same...
 
   // Helper functions from client.js
   function stripTrailingSlash(url) {
