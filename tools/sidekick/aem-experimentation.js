@@ -101,20 +101,31 @@
 }
 
 function checkExperimentParams() {
-    // Wait for sidekick first
-    waitForSidekick()
-        .then(() => loadAEMExperimentationApp())
-        .then(() => waitForAuth())
-        .then(() => {
-            const panel = document.getElementById('aemExperimentation');
-            if (panel) {
-                console.log('[AEM Exp] Simulation mode - showing panel');
-                toggleExperimentPanel(true);
-            }
-        })
-        .catch(error => {
-            console.error('[AEM Exp] Failed to load:', error);
-        });
+  // Wait for sidekick first
+  waitForSidekick()
+      .then(() => {
+          // Simulate the button click flow that works
+          const panel = document.getElementById('aemExperimentation');
+          if (!isAEMExperimentationAppLoaded) {
+              loadAEMExperimentationApp()
+                  .then(() => {
+                      if (panel) {
+                          console.log('[AEM Exp] First load - showing panel');
+                          toggleExperimentPanel(true); 
+                      }
+                      // Now wait for auth after showing panel
+                      return waitForAuth().then(() => {
+                          console.log('[AEM Exp] Auth complete in simulation mode');
+                      });
+                  })
+                  .catch(error => {
+                      console.error('[AEM Exp] Failed to load:', error);
+                  });
+          }
+      })
+      .catch(error => {
+          console.error('[AEM Exp] Failed to initialize:', error);
+      });
 }
 
 // Initialize Sidekick event listener
