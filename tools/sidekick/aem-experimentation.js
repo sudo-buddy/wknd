@@ -35,20 +35,34 @@
         console.log('[AEM Exp] Starting simulation');
         isHandlingSimulation = true;
 
-        // Directly call the click handler instead of dispatching event
-        handleSidekickPluginButtonClick();
-
-        return waitForAuth().then(() => {
-            const container = document.getElementById('aemExperimentation');
-            if (container) {
-                container.classList.remove('aemExperimentationHidden');
-                console.log('[AEM Exp] Container shown after auth ready');
-            }
-            isHandlingSimulation = false;
+        // Load script directly in simulation mode
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
+            script.onload = function() {
+                isAEMExperimentationAppLoaded = true;
+                console.log('[AEM Exp] Script loaded');
+                
+                // Wait briefly for client.js to initialize and create container
+                setTimeout(() => {
+                    const panel = document.getElementById('aemExperimentation');
+                    if (panel) {
+                        console.log('[AEM Exp] First load - showing panel');
+                        toggleExperimentPanel(true);
+                    }
+                    
+                    waitForAuth().then(() => {
+                        isHandlingSimulation = false;
+                        resolve();
+                    });
+                }, 100);
+            };
+            script.onerror = reject;
+            document.head.appendChild(script);
         });
     }
 
-    // Original first-load logic
+    // Original first-load logic remains unchanged
     if (!isAEMExperimentationAppLoaded) {
         scriptLoadPromise = new Promise((resolve, reject) => {
             const script = document.createElement('script');
@@ -83,6 +97,11 @@
           toggleExperimentPanel(false);
       }
   }
+
+  function checkExperimentParams() {
+    // Start in simulation mode immediately
+    loadAEMExperimentationApp(true);
+}
 
   // Initialize Sidekick
   const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
