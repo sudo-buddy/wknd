@@ -16,11 +16,13 @@
 
   function loadAEMExperimentationApp() {
       if (scriptLoadPromise) {
+        console.log('xinyiyiyiyiyiyiy scriptLoadPromise already exists');
           return scriptLoadPromise;
       }
 
       scriptLoadPromise = new Promise((resolve, reject) => {
           if (isAEMExperimentationAppLoaded) {
+              console.log('xinyiyiyiyiyiyiy isAEMExperimentationAppLoaded');
               resolve();
               return;
           }
@@ -30,13 +32,16 @@
 
           script.onload = function () {
               isAEMExperimentationAppLoaded = true;
+              console.log('xinyiyiyiyiyiyiy isAEMExperimentationAppLoaded');
               // Wait for container to be created
               const waitForContainer = (retries = 0, maxRetries = 20) => {
                   const container = document.getElementById('aemExperimentation');
                   if (container) {
-                      toggleExperimentPanel(true); // Force show on initial load
+                      console.log('xinyiyiyiyiyiyiy container exists');
+                        toggleExperimentPanel(true); // Force show on initial load
                       resolve();
                   } else if (retries < maxRetries) {
+                      console.log('xinyiyiyiyiyiyiy container does not exist - waiting for it');
                       setTimeout(() => waitForContainer(retries + 1, maxRetries), 200);
                   } else {
                       resolve();
@@ -46,10 +51,11 @@
               waitForContainer();
           };
 
-          script.onerror = reject;
+          script.onerror = reject;  
+          console.log('xinyiyiyiyiyiyiy script.onerror');
           document.head.appendChild(script);
       });
-
+      console.log('xinyiyiyiyiyiyiy scriptLoadPromise');
       return scriptLoadPromise;
   }
 
