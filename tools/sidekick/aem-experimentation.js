@@ -15,96 +15,38 @@
   }
 
   function loadAEMExperimentationApp(isSimulation = false) {
-    console.log('loadAEMExperimentationApp called with simulation:', isSimulation);
-
-    // For simulation, we want to force a complete reset
     if (isSimulation) {
-        console.log('Simulation mode - forcing complete reset');
-        
-        // Remove existing script tag
+        // Remove everything to force a fresh start
         const existingScript = document.querySelector('script[src*="client.js"]');
         if (existingScript) {
             existingScript.remove();
         }
-
-        // Remove existing container
         const existingContainer = document.getElementById('aemExperimentation');
         if (existingContainer) {
             existingContainer.remove();
         }
 
-        // Reset all states
+        // Reset all states to mimic first load
         isAEMExperimentationAppLoaded = false;
         scriptLoadPromise = null;
+    }
 
-        // Force a fresh load
-        console.log('Creating fresh instance for simulation');
-        return new Promise((resolve, reject) => {
+    // Now let it follow the exact same path as first click
+    if (!isAEMExperimentationAppLoaded) {
+        scriptLoadPromise = new Promise((resolve, reject) => {
             const script = document.createElement('script');
-            // Add timestamp to prevent caching
-            script.src = `https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin&t=${Date.now()}`;
-
+            script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
             script.onload = function() {
-                console.log('Script loaded for simulation');
                 isAEMExperimentationAppLoaded = true;
-                const waitForContainer = (retries = 0, maxRetries = 20) => {
-                    const container = document.getElementById('aemExperimentation');
-                    if (container) {
-                        console.log('Container ready for simulation');
-                        toggleExperimentPanel(true);
-                        resolve();
-                    } else if (retries < maxRetries) {
-                        setTimeout(() => waitForContainer(retries + 1, maxRetries), 200);
-                    } else {
-                        reject(new Error('Container creation timeout'));
-                    }
-                };
-                waitForContainer();
+                resolve();
             };
-
-            script.onerror = (error) => {
-                console.error('Script load error:', error);
-                reject(error);
-            };
+            script.onerror = reject;
             document.head.appendChild(script);
         });
     }
 
-    // Normal non-simulation flow
-    if (scriptLoadPromise) {
-        console.log('Using existing promise');
-        return scriptLoadPromise;
-    }
-
-    console.log('Creating new panel instance');
-    scriptLoadPromise = new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
-
-        script.onload = function() {
-            isAEMExperimentationAppLoaded = true;
-            const waitForContainer = (retries = 0, maxRetries = 20) => {
-                const container = document.getElementById('aemExperimentation');
-                if (container) {
-                    console.log('Container ready');
-                    toggleExperimentPanel(true);
-                    resolve();
-                } else if (retries < maxRetries) {
-                    setTimeout(() => waitForContainer(retries + 1, maxRetries), 200);
-                } else {
-                    reject(new Error('Container creation timeout'));
-                }
-            };
-            waitForContainer();
-        };
-
-        script.onerror = reject;
-        document.head.appendChild(script);
-    });
-
     return scriptLoadPromise;
 }
-
   function checkExperimentParams() {
       const urlParams = new URLSearchParams(window.location.search);
       const experimentParam = urlParams.get('experiment');
