@@ -15,30 +15,68 @@
   }
 
   function loadAEMExperimentationApp(isSimulation = false) {
-    // Log the current state
-    console.log('Current container state:', {
-        exists: !!document.getElementById('aemExperimentation'),
-        isLoaded: isAEMExperimentationAppLoaded,
-        hasPromise: !!scriptLoadPromise
-    });
+    console.log('loadAEMExperimentationApp called with simulation:', isSimulation);
 
+    // For simulation, we want to force a complete reset
     if (isSimulation) {
-        // Remove existing container and reset states
+        console.log('Simulation mode - forcing complete reset');
+        
+        // Remove existing script tag
+        const existingScript = document.querySelector('script[src*="client.js"]');
+        if (existingScript) {
+            existingScript.remove();
+        }
+
+        // Remove existing container
         const existingContainer = document.getElementById('aemExperimentation');
         if (existingContainer) {
             existingContainer.remove();
         }
+
+        // Reset all states
         isAEMExperimentationAppLoaded = false;
         scriptLoadPromise = null;
+
+        // Force a fresh load
+        console.log('Creating fresh instance for simulation');
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            // Add timestamp to prevent caching
+            script.src = `https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin&t=${Date.now()}`;
+
+            script.onload = function() {
+                console.log('Script loaded for simulation');
+                isAEMExperimentationAppLoaded = true;
+                const waitForContainer = (retries = 0, maxRetries = 20) => {
+                    const container = document.getElementById('aemExperimentation');
+                    if (container) {
+                        console.log('Container ready for simulation');
+                        toggleExperimentPanel(true);
+                        resolve();
+                    } else if (retries < maxRetries) {
+                        setTimeout(() => waitForContainer(retries + 1, maxRetries), 200);
+                    } else {
+                        reject(new Error('Container creation timeout'));
+                    }
+                };
+                waitForContainer();
+            };
+
+            script.onerror = (error) => {
+                console.error('Script load error:', error);
+                reject(error);
+            };
+            document.head.appendChild(script);
+        });
     }
 
-    // If we have a pending promise and not simulation, return it
-    if (scriptLoadPromise && !isSimulation) {
-        console.log('xinyiyiyiyiyiyiy Using existing promise');
+    // Normal non-simulation flow
+    if (scriptLoadPromise) {
+        console.log('Using existing promise');
         return scriptLoadPromise;
     }
 
-    console.log('xinyiyiyiyiyiyiy Creating new panel instance');
+    console.log('Creating new panel instance');
     scriptLoadPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
         script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
@@ -48,13 +86,13 @@
             const waitForContainer = (retries = 0, maxRetries = 20) => {
                 const container = document.getElementById('aemExperimentation');
                 if (container) {
-                    console.log('xinyiyiyiyiyiyiy Container ready');
+                    console.log('Container ready');
                     toggleExperimentPanel(true);
                     resolve();
                 } else if (retries < maxRetries) {
                     setTimeout(() => waitForContainer(retries + 1, maxRetries), 200);
                 } else {
-                    resolve();
+                    reject(new Error('Container creation timeout'));
                 }
             };
             waitForContainer();
