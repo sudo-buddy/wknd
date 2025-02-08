@@ -15,49 +15,48 @@
   }
 
   function loadAEMExperimentationApp() {
-      if (scriptLoadPromise) {
-        console.log('xinyiyiyiyiyiyiy scriptLoadPromise already exists');
-          return scriptLoadPromise;
-      }
+    // First check if we already have an authenticated container
+    const existingContainer = document.getElementById('aemExperimentation');
+    if (existingContainer) {
+        console.log('xinyiyiyiyiyiyiy Using existing container');
+        return Promise.resolve().then(() => {
+            toggleExperimentPanel(true);
+        });
+    }
 
-      scriptLoadPromise = new Promise((resolve, reject) => {
-          if (isAEMExperimentationAppLoaded) {
-              console.log('xinyiyiyiyiyiyiy isAEMExperimentationAppLoaded');
-              resolve();
-              return;
-          }
+    // Only create new if doesn't exist
+    if (scriptLoadPromise) {
+        console.log('xinyiyiyiyiyiyiy Using existing promise');
+        return scriptLoadPromise;
+    }
 
-          const script = document.createElement('script');
-          script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
+    scriptLoadPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
 
-          script.onload = function () {
-              isAEMExperimentationAppLoaded = true;
-              console.log('xinyiyiyiyiyiyiy isAEMExperimentationAppLoaded');
-              // Wait for container to be created
-              const waitForContainer = (retries = 0, maxRetries = 20) => {
-                  const container = document.getElementById('aemExperimentation');
-                  if (container) {
-                      console.log('xinyiyiyiyiyiyiy container exists');
-                        toggleExperimentPanel(true); // Force show on initial load
-                      resolve();
-                  } else if (retries < maxRetries) {
-                      console.log('xinyiyiyiyiyiyiy container does not exist - waiting for it');
-                      setTimeout(() => waitForContainer(retries + 1, maxRetries), 200);
-                  } else {
-                      resolve();
-                  }
-              };
-              
-              waitForContainer();
-          };
+        script.onload = function () {
+            isAEMExperimentationAppLoaded = true;
+            const waitForContainer = (retries = 0, maxRetries = 20) => {
+                const container = document.getElementById('aemExperimentation');
+                if (container) {
+                    console.log('xinyiyiyiyiyiyiy New container created');
+                    toggleExperimentPanel(true);
+                    resolve();
+                } else if (retries < maxRetries) {
+                    setTimeout(() => waitForContainer(retries + 1, maxRetries), 200);
+                } else {
+                    resolve();
+                }
+            };
+            waitForContainer();
+        };
 
-          script.onerror = reject;  
-          console.log('xinyiyiyiyiyiyiy script.onerror');
-          document.head.appendChild(script);
-      });
-      console.log('xinyiyiyiyiyiyiy scriptLoadPromise');
-      return scriptLoadPromise;
-  }
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+
+    return scriptLoadPromise;
+}
 
   // function checkExperimentParams() {
   //     const urlParams = new URLSearchParams(window.location.search);
