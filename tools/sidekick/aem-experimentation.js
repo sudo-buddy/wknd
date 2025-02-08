@@ -15,54 +15,57 @@
   }
 
   function loadAEMExperimentationApp(isSimulation = false) {
-      // For simulation, we want fresh initialization
-      if (isSimulation) {
-          // Reset states
-          isAEMExperimentationAppLoaded = false;
-          scriptLoadPromise = null;
-          
-          // Remove existing container if any
-          const existingContainer = document.getElementById('aemExperimentation');
-          if (existingContainer) {
-              existingContainer.remove();
-          }
-      }
+    // Log the current state
+    console.log('Current container state:', {
+        exists: !!document.getElementById('aemExperimentation'),
+        isLoaded: isAEMExperimentationAppLoaded,
+        hasPromise: !!scriptLoadPromise
+    });
 
-      // If we have a pending promise and not simulation, return it
-      if (scriptLoadPromise && !isSimulation) {
-          console.log('xinyiyiyiyiyiyiy Using existing promise');
-          return scriptLoadPromise;
-      }
+    if (isSimulation) {
+        // Remove existing container and reset states
+        const existingContainer = document.getElementById('aemExperimentation');
+        if (existingContainer) {
+            existingContainer.remove();
+        }
+        isAEMExperimentationAppLoaded = false;
+        scriptLoadPromise = null;
+    }
 
-      console.log('xinyiyiyiyiyiyiy Creating new panel instance');
-      scriptLoadPromise = new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          // Add timestamp to prevent caching
-          script.src = `https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin&t=${Date.now()}`;
+    // If we have a pending promise and not simulation, return it
+    if (scriptLoadPromise && !isSimulation) {
+        console.log('xinyiyiyiyiyiyiy Using existing promise');
+        return scriptLoadPromise;
+    }
 
-          script.onload = function () {
-              isAEMExperimentationAppLoaded = true;
-              const waitForContainer = (retries = 0, maxRetries = 20) => {
-                  const container = document.getElementById('aemExperimentation');
-                  if (container) {
-                      console.log('xinyiyiyiyiyiyiy Container ready');
-                      toggleExperimentPanel(true);
-                      resolve();
-                  } else if (retries < maxRetries) {
-                      setTimeout(() => waitForContainer(retries + 1, maxRetries), 200);
-                  } else {
-                      resolve();
-                  }
-              };
-              waitForContainer();
-          };
+    console.log('xinyiyiyiyiyiyiy Creating new panel instance');
+    scriptLoadPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
 
-          script.onerror = reject;
-          document.head.appendChild(script);
-      });
+        script.onload = function() {
+            isAEMExperimentationAppLoaded = true;
+            const waitForContainer = (retries = 0, maxRetries = 20) => {
+                const container = document.getElementById('aemExperimentation');
+                if (container) {
+                    console.log('xinyiyiyiyiyiyiy Container ready');
+                    toggleExperimentPanel(true);
+                    resolve();
+                } else if (retries < maxRetries) {
+                    setTimeout(() => waitForContainer(retries + 1, maxRetries), 200);
+                } else {
+                    resolve();
+                }
+            };
+            waitForContainer();
+        };
 
-      return scriptLoadPromise;
-  }
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+
+    return scriptLoadPromise;
+}
 
   function checkExperimentParams() {
       const urlParams = new URLSearchParams(window.location.search);
