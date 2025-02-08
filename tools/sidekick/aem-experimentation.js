@@ -21,12 +21,6 @@
             script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
             script.onload = function() {
                 isAEMExperimentationAppLoaded = true;
-                // Show panel immediately after script loads
-                const panel = document.getElementById('aemExperimentation');
-                if (panel) {
-                    console.log('[AEM Exp] First load - showing panel');
-                    toggleExperimentPanel(true); 
-                }
                 resolve();
             };
             script.onerror = reject;
@@ -36,42 +30,47 @@
     return scriptLoadPromise;
 }
 
-function checkExperimentParams() {
-    // First check if sidekick is open
-    const sidekick = document.querySelector('aem-sidekick');
-    if (!sidekick.hasAttribute('open')) {
-        sidekick.setAttribute('open', 'true');
-    }
+function handleExperimentOpen(isAuto = false) {
+    const panel = document.getElementById('aemExperimentation');
     
-    // Then load app and handle auth
-    loadAEMExperimentationApp(true)
-        .then(() => waitForAuth())
+    if (!isAEMExperimentationAppLoaded) {
+        loadAEMExperimentationApp()
+            .then(() => {
+                if (panel) {
+                    console.log('[AEM Exp] First load - showing panel');
+                    toggleExperimentPanel(true);
+                    
+                    // If auto-opening, dispatch the event that manual click would create
+                    if (isAuto) {
+                        const sidekick = document.querySelector('aem-sidekick');
+                        if (sidekick) {
+                            const event = new CustomEvent('custom:aem-experimentation-sidekick');
+                            sidekick.dispatchEvent(event);
+                        }
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('[AEM Exp] Failed to load:', error);
+            });
+    } else {
+        toggleExperimentPanel(false);
+    }
+}
+
+function checkExperimentParams() {
+    waitForSidekick()
         .then(() => {
-            console.log('[AEM Exp] Auth complete');
+            handleExperimentOpen(true); // true indicates auto-open
         })
         .catch(error => {
             console.error('[AEM Exp] Failed to initialize:', error);
         });
 }
 
-  function handleSidekickPluginButtonClick() {
-      const panel = document.getElementById('aemExperimentation');
-
-      if (!isAEMExperimentationAppLoaded) {
-          loadAEMExperimentationApp()
-              .then(() => {
-                  if (panel) {
-                      console.log('[AEM Exp] First load - showing panel');
-                      toggleExperimentPanel(true); 
-                  }
-              })
-              .catch(error => {
-                  console.error('[AEM Exp] Failed to load:', error);
-              });
-      } else {
-          toggleExperimentPanel(false);
-      }
-  }
+function handleSidekickPluginButtonClick() {
+    handleExperimentOpen(false); // false indicates manual click
+}
 
   // Initialize Sidekick
   const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
