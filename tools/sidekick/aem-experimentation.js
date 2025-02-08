@@ -18,28 +18,33 @@
       if (isSimulation) {
           console.log('[AEM Exp] Starting simulation');
           
-          // Instead of removing container, just hide it
-          const existingContainer = document.getElementById('aemExperimentation');
-          if (existingContainer) {
-              existingContainer.style.display = 'none';
-              
-              // Create new iframe while preserving parent container
-              const oldIframe = existingContainer.querySelector('iframe');
-              if (oldIframe) {
-                  const newIframe = document.createElement('iframe');
-                  newIframe.id = 'aemExperimentationIFrameContent';
-                  newIframe.src = oldIframe.src + '&_=' + Date.now(); // Force fresh load
-                  oldIframe.replaceWith(newIframe);
-              }
-              
-              // Show container again
-              setTimeout(() => {
-                  existingContainer.style.display = '';
-                  toggleExperimentPanel(true);
-              }, 100);
-          }
+          // Reset states first
+          isAEMExperimentationAppLoaded = false;
+          scriptLoadPromise = null;
 
-          return Promise.resolve();
+          // Treat like first click - inject script and setup container
+          return new Promise((resolve, reject) => {
+              const script = document.createElement('script');
+              script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin&_=' + Date.now();
+              
+              script.onload = function() {
+                  console.log('[AEM Exp] Script loaded for simulation');
+                  isAEMExperimentationAppLoaded = true;
+                  
+                  // Wait briefly for container to be created
+                  setTimeout(() => {
+                      const container = document.getElementById('aemExperimentation');
+                      if (container) {
+                          container.classList.remove('aemExperimentationHidden');
+                          console.log('[AEM Exp] Container ready and visible');
+                      }
+                      resolve();
+                  }, 100);
+              };
+              
+              script.onerror = reject;
+              document.head.appendChild(script);
+          });
       }
 
       // Original first-load logic
@@ -59,7 +64,6 @@
       return scriptLoadPromise;
   }
 
-  // Rest of your code stays the same...
   function checkExperimentParams() {
       const urlParams = new URLSearchParams(window.location.search);
       const experimentParam = urlParams.get('experiment');
@@ -82,6 +86,13 @@
               sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
               sessionStorage.setItem('aemExperimentation_variantId', variantId || 'control');
 
+              // Remove existing container if any
+              const existingContainer = document.getElementById('aemExperimentation');
+              if (existingContainer) {
+                  existingContainer.remove();
+              }
+
+              // Load fresh instance
               loadAEMExperimentationApp(true)
                   .catch((error) => {
                       console.error('[AEM Exp] Error loading app:', error);
