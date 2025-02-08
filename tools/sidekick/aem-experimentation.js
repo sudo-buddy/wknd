@@ -39,18 +39,25 @@
           scriptLoadPromise = null;
 
           return new Promise((resolve, reject) => {
-              // First load like normal click
-              handleSidekickPluginButtonClick();
-
-              // Wait for auth before showing
-              waitForAuth().then(() => {
-                  const container = document.getElementById('aemExperimentation');
-                  if (container) {
-                      container.classList.remove('aemExperimentationHidden');
-                      console.log('[AEM Exp] Container shown after auth ready');
-                  }
-                  resolve();
-              });
+              // Automatically inject script and create iframe
+              const script = document.createElement('script');
+              script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
+              script.onload = function() {
+                  isAEMExperimentationAppLoaded = true;
+                  console.log('[AEM Exp] Script loaded for simulation');
+                  
+                  // Wait for auth before showing
+                  waitForAuth().then(() => {
+                      const container = document.getElementById('aemExperimentation');
+                      if (container) {
+                          container.classList.remove('aemExperimentationHidden');
+                          console.log('[AEM Exp] Container shown after auth ready');
+                      }
+                      resolve();
+                  });
+              };
+              script.onerror = reject;
+              document.head.appendChild(script);
           });
       }
 
@@ -70,8 +77,6 @@
 
       return scriptLoadPromise;
   }
-
-  // Rest of your code stays the same...
 
   function handleSidekickPluginButtonClick() {
       const panel = document.getElementById('aemExperimentation');
