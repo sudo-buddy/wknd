@@ -31,22 +31,54 @@
   }
 
   function loadAEMExperimentationApp(isSimulation = false) {
-      // Original first-load logic
-      if (!isAEMExperimentationAppLoaded) {
-          scriptLoadPromise = new Promise((resolve, reject) => {
-              const script = document.createElement('script');
-              script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
-              script.onload = function() {
-                  isAEMExperimentationAppLoaded = true;
-                  resolve();
-              };
-              script.onerror = reject;
-              document.head.appendChild(script);
-          });
-      }
+    if (!isAEMExperimentationAppLoaded) {
+        scriptLoadPromise = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
+            script.onload = function() {
+                isAEMExperimentationAppLoaded = true;
+                // Wait for iframe to be created after script loads
+                setTimeout(() => {
+                    resolve();
+                }, 500); // Give time for client.js to create iframe
+            };
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+    return scriptLoadPromise;
+}
 
-      return scriptLoadPromise;
-  }
+function checkExperimentParams() {
+    waitForSidekick()
+        .then(() => {
+            return loadAEMExperimentationApp()
+                .then(() => {
+                    // Wait for iframe to be fully loaded
+                    return new Promise((resolve) => {
+                        const checkIframe = () => {
+                            const iframe = document.querySelector('#aemExperimentationIFrameContent');
+                            if (iframe) {
+                                console.log('[AEM Exp] Iframe created');
+                                toggleExperimentPanel(true);
+                                resolve();
+                            } else {
+                                console.log('[AEM Exp] Waiting for iframe...');
+                                setTimeout(checkIframe, 100);
+                            }
+                        };
+                        checkIframe();
+                    });
+                })
+                .then(() => waitForAuth())
+                .then(() => {
+                    console.log('[AEM Exp] Auth complete in simulation mode');
+                });
+        })
+        .catch(error => {
+            console.error('[AEM Exp] Failed to initialize:', error);
+        });
+}
 
   function handleSidekickPluginButtonClick() {
       const panel = document.getElementById('aemExperimentation');
@@ -99,26 +131,6 @@
         check();
     });
 }
-
-function checkExperimentParams() {
-  // Wait for sidekick first
-  waitForSidekick()
-      .then((sidekick) => {
-          // Create and dispatch the event that normally comes from clicking the button
-          const event = new CustomEvent('custom:aem-experimentation-sidekick');
-          console.log('[AEM Exp] Dispatching simulated button click');
-          sidekick.dispatchEvent(event);
-          
-          // Wait for auth after dispatching event
-          return waitForAuth().then(() => {
-              console.log('[AEM Exp] Auth complete in simulation mode');
-          });
-      })
-      .catch(error => {
-          console.error('[AEM Exp] Failed to initialize:', error);
-      });
-}
-
 // Initialize Sidekick event listener
 document.addEventListener(
     'sidekick-ready',
