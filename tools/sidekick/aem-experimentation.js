@@ -14,22 +14,6 @@
       }
   }
 
-  function waitForAuth() {
-      return new Promise((resolve) => {
-          const checkAuth = () => {
-              const iframe = document.querySelector('#aemExperimentationIFrameContent');
-              if (iframe?.contentWindow?.location?.href?.includes('experience-qa.adobe.com')) {
-                  console.log('[AEM Exp] Auth ready');
-                  resolve();
-              } else {
-                  console.log('[AEM Exp] Waiting for auth...');
-                  setTimeout(checkAuth, 100);
-              }
-          };
-          checkAuth();
-      });
-  }
-
   function loadAEMExperimentationApp(isSimulation = false) {
     if (!isAEMExperimentationAppLoaded) {
         scriptLoadPromise = new Promise((resolve, reject) => {
@@ -37,6 +21,12 @@
             script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
             script.onload = function() {
                 isAEMExperimentationAppLoaded = true;
+                // Show panel immediately after script loads
+                const panel = document.getElementById('aemExperimentation');
+                if (panel) {
+                    console.log('[AEM Exp] First load - showing panel');
+                    toggleExperimentPanel(true); 
+                }
                 resolve();
             };
             script.onerror = reject;
@@ -47,30 +37,21 @@
 }
 
 function checkExperimentParams() {
-  // Wait for sidekick first
-  waitForSidekick()
-      .then((sidekick) => {
-          // Find the actual button in sidekick
-          const buttons = sidekick.shadowRoot.querySelectorAll('button');
-          let expButton;
-          for (const button of buttons) {
-              if (button.textContent.includes('Experimentation')) {
-                  expButton = button;
-                  break;
-              }
-          }
-          
-          if (expButton) {
-              // Trigger the real click
-              console.log('[AEM Exp] Found experimentation button, clicking');
-              expButton.click();
-          } else {
-              console.error('[AEM Exp] Could not find experimentation button');
-          }
-      })
-      .catch(error => {
-          console.error('[AEM Exp] Failed to initialize:', error);
-      });
+    // First check if sidekick is open
+    const sidekick = document.querySelector('aem-sidekick');
+    if (!sidekick.hasAttribute('open')) {
+        sidekick.setAttribute('open', 'true');
+    }
+    
+    // Then load app and handle auth
+    loadAEMExperimentationApp(true)
+        .then(() => waitForAuth())
+        .then(() => {
+            console.log('[AEM Exp] Auth complete');
+        })
+        .catch(error => {
+            console.error('[AEM Exp] Failed to initialize:', error);
+        });
 }
 
   function handleSidekickPluginButtonClick() {
