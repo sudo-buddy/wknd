@@ -37,10 +37,7 @@
             script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
             script.onload = function() {
                 isAEMExperimentationAppLoaded = true;
-                // Wait for iframe to be created after script loads
-                setTimeout(() => {
-                    resolve();
-                }, 500); // Give time for client.js to create iframe
+                resolve();
             };
             script.onerror = reject;
             document.head.appendChild(script);
@@ -51,29 +48,18 @@
 
 function checkExperimentParams() {
     waitForSidekick()
+        .then(() => loadAEMExperimentationApp())
         .then(() => {
-            return loadAEMExperimentationApp()
-                .then(() => {
-                    // Wait for iframe to be fully loaded
-                    return new Promise((resolve) => {
-                        const checkIframe = () => {
-                            const iframe = document.querySelector('#aemExperimentationIFrameContent');
-                            if (iframe) {
-                                console.log('[AEM Exp] Iframe created');
-                                toggleExperimentPanel(true);
-                                resolve();
-                            } else {
-                                console.log('[AEM Exp] Waiting for iframe...');
-                                setTimeout(checkIframe, 100);
-                            }
-                        };
-                        checkIframe();
-                    });
-                })
-                .then(() => waitForAuth())
-                .then(() => {
-                    console.log('[AEM Exp] Auth complete in simulation mode');
-                });
+            // Show panel first
+            const panel = document.getElementById('aemExperimentation');
+            if (panel) {
+                console.log('[AEM Exp] First load - showing panel');
+                toggleExperimentPanel(true); 
+            }
+            
+            // Trigger sign in directly
+            const event = new CustomEvent('custom:aem-experimentation-sidekick');
+            document.dispatchEvent(event);
         })
         .catch(error => {
             console.error('[AEM Exp] Failed to initialize:', error);
