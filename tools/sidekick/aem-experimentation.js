@@ -103,25 +103,16 @@
 function checkExperimentParams() {
   // Wait for sidekick first
   waitForSidekick()
-      .then(() => {
-          // Simulate the button click flow that works
-          const panel = document.getElementById('aemExperimentation');
-          if (!isAEMExperimentationAppLoaded) {
-              loadAEMExperimentationApp()
-                  .then(() => {
-                      if (panel) {
-                          console.log('[AEM Exp] First load - showing panel');
-                          toggleExperimentPanel(true); 
-                      }
-                      // Now wait for auth after showing panel
-                      return waitForAuth().then(() => {
-                          console.log('[AEM Exp] Auth complete in simulation mode');
-                      });
-                  })
-                  .catch(error => {
-                      console.error('[AEM Exp] Failed to load:', error);
-                  });
-          }
+      .then((sidekick) => {
+          // Create and dispatch the event that normally comes from clicking the button
+          const event = new CustomEvent('custom:aem-experimentation-sidekick');
+          console.log('[AEM Exp] Dispatching simulated button click');
+          sidekick.dispatchEvent(event);
+          
+          // Wait for auth after dispatching event
+          return waitForAuth().then(() => {
+              console.log('[AEM Exp] Auth complete in simulation mode');
+          });
       })
       .catch(error => {
           console.error('[AEM Exp] Failed to initialize:', error);
