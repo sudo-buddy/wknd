@@ -15,75 +15,70 @@
   }
 
   function loadAEMExperimentationApp(isSimulation = false) {
+    console.log('[AEM Exp] Starting to load app');
     if (!isAEMExperimentationAppLoaded) {
         scriptLoadPromise = new Promise((resolve, reject) => {
             const script = document.createElement('script');
             script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
             script.onload = function() {
                 isAEMExperimentationAppLoaded = true;
+                console.log('[AEM Exp] Script loaded successfully');
                 resolve();
             };
-            script.onerror = reject;
+            script.onerror = (error) => {
+                console.error('[AEM Exp] Script load error:', error);
+                reject(error);
+            };
             document.head.appendChild(script);
         });
     }
     return scriptLoadPromise;
 }
 
-function waitForAuth() {
-  return new Promise((resolve) => {
-      const checkAuth = () => {
-          const iframe = document.querySelector('#aemExperimentationIFrameContent');
-          if (iframe?.contentWindow?.location?.href?.includes('experience-qa.adobe.com')) {
-              console.log('[AEM Exp] Auth ready');
-              resolve();
-          } else {
-              console.log('[AEM Exp] Waiting for auth...');
-              setTimeout(checkAuth, 100);
-          }
-      };
-      checkAuth();
-  });
-}
-
 function handleExperimentOpen(isAuto = false) {
-  const panel = document.getElementById('aemExperimentation');
-  
-  if (!isAEMExperimentationAppLoaded) {
-      loadAEMExperimentationApp()
-          .then(() => {
-              if (panel) {
-                  console.log('[AEM Exp] First load - showing panel');
-                  toggleExperimentPanel(true);
-                  
-                  // Wait for iframe and auth
-                  return waitForAuth().then(() => {
-                      // Only dispatch event after auth is ready
-                      if (isAuto) {
-                          const sidekick = document.querySelector('aem-sidekick');
-                          if (sidekick) {
-                              const event = new CustomEvent('custom:aem-experimentation-sidekick');
-                              sidekick.dispatchEvent(event);
-                          }
-                      }
-                  });
-              }
-          })
-          .catch(error => {
-              console.error('[AEM Exp] Failed to load:', error);
-          });
-  } else {
-      toggleExperimentPanel(false);
-  }
+    console.log('[AEM Exp] Handling experiment open, isAuto:', isAuto);
+    const panel = document.getElementById('aemExperimentation');
+    
+    if (!isAEMExperimentationAppLoaded) {
+        loadAEMExperimentationApp()
+            .then(() => {
+                if (panel) {
+                    console.log('[AEM Exp] Panel found, showing it');
+                    toggleExperimentPanel(true);
+                    
+                    if (isAuto) {
+                        console.log('[AEM Exp] Auto mode - dispatching event');
+                        const sidekick = document.querySelector('aem-sidekick');
+                        if (sidekick) {
+                            const event = new CustomEvent('custom:aem-experimentation-sidekick');
+                            sidekick.dispatchEvent(event);
+                            console.log('[AEM Exp] Event dispatched');
+                        } else {
+                            console.log('[AEM Exp] No sidekick found for event dispatch');
+                        }
+                    }
+                } else {
+                    console.log('[AEM Exp] No panel found');
+                }
+            })
+            .catch(error => {
+                console.error('[AEM Exp] Failed in handleExperimentOpen:', error);
+            });
+    } else {
+        console.log('[AEM Exp] App already loaded, toggling panel');
+        toggleExperimentPanel(false);
+    }
 }
 
 function checkExperimentParams() {
+    console.log('[AEM Exp] Starting checkExperimentParams');
     waitForSidekick()
-        .then(() => {
-            handleExperimentOpen(true); // true indicates auto-open
+        .then((sidekick) => {
+            console.log('[AEM Exp] Sidekick found, opening experiment');
+            handleExperimentOpen(true);
         })
         .catch(error => {
-            console.error('[AEM Exp] Failed to initialize:', error);
+            console.error('[AEM Exp] Failed in checkExperimentParams:', error);
         });
 }
 
