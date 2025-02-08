@@ -30,32 +30,51 @@
     return scriptLoadPromise;
 }
 
+function waitForAuth() {
+  return new Promise((resolve) => {
+      const checkAuth = () => {
+          const iframe = document.querySelector('#aemExperimentationIFrameContent');
+          if (iframe?.contentWindow?.location?.href?.includes('experience-qa.adobe.com')) {
+              console.log('[AEM Exp] Auth ready');
+              resolve();
+          } else {
+              console.log('[AEM Exp] Waiting for auth...');
+              setTimeout(checkAuth, 100);
+          }
+      };
+      checkAuth();
+  });
+}
+
 function handleExperimentOpen(isAuto = false) {
-    const panel = document.getElementById('aemExperimentation');
-    
-    if (!isAEMExperimentationAppLoaded) {
-        loadAEMExperimentationApp()
-            .then(() => {
-                if (panel) {
-                    console.log('[AEM Exp] First load - showing panel');
-                    toggleExperimentPanel(true);
-                    
-                    // If auto-opening, dispatch the event that manual click would create
-                    if (isAuto) {
-                        const sidekick = document.querySelector('aem-sidekick');
-                        if (sidekick) {
-                            const event = new CustomEvent('custom:aem-experimentation-sidekick');
-                            sidekick.dispatchEvent(event);
-                        }
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('[AEM Exp] Failed to load:', error);
-            });
-    } else {
-        toggleExperimentPanel(false);
-    }
+  const panel = document.getElementById('aemExperimentation');
+  
+  if (!isAEMExperimentationAppLoaded) {
+      loadAEMExperimentationApp()
+          .then(() => {
+              if (panel) {
+                  console.log('[AEM Exp] First load - showing panel');
+                  toggleExperimentPanel(true);
+                  
+                  // Wait for iframe and auth
+                  return waitForAuth().then(() => {
+                      // Only dispatch event after auth is ready
+                      if (isAuto) {
+                          const sidekick = document.querySelector('aem-sidekick');
+                          if (sidekick) {
+                              const event = new CustomEvent('custom:aem-experimentation-sidekick');
+                              sidekick.dispatchEvent(event);
+                          }
+                      }
+                  });
+              }
+          })
+          .catch(error => {
+              console.error('[AEM Exp] Failed to load:', error);
+          });
+  } else {
+      toggleExperimentPanel(false);
+  }
 }
 
 function checkExperimentParams() {
