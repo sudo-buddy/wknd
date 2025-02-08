@@ -3,176 +3,152 @@
   let scriptLoadPromise = null;
   let isHandlingSimulation = false;
 
-  // Creates (or updates) the experiment panel AND its iframe.
-  // This forces a new load of the simulation/auth environment.
+  // Force creation (or refresh) of the experiment panel and its iframe.
   function createExperimentPanel() {
-      let panel = document.getElementById('aemExperimentation');
-      if (!panel) {
-          panel = document.createElement('div');
-          panel.id = 'aemExperimentation';
-          // Optionally, add any additional classes/styles here.
-          document.body.appendChild(panel);
-      }
-      // Create or update the iframe inside the panel.
-      let iframe = document.getElementById('aemExperimentationIFrameContent');
-      if (!iframe) {
-          iframe = document.createElement('iframe');
-          iframe.id = 'aemExperimentationIFrameContent';
-          panel.appendChild(iframe);
-      }
-      // Force a fresh URL (with a timestamp) so that simulation/auth is reloaded.
-      iframe.src =
-          'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick.html?env=qa&pageUrl=' +
-          encodeURIComponent(window.location.href) +
-          '&source=plugin&t=' +
-          Date.now();
-      return panel;
+    let container = document.getElementById('aemExperimentation');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'aemExperimentation';
+      document.body.appendChild(container);
+    }
+    // Remove any existing iframe so we force a reload.
+    const oldIframe = document.getElementById('aemExperimentationIFrameContent');
+    if (oldIframe) {
+      oldIframe.remove();
+    }
+
+    // Create a new iframe with a timestamp to bypass any caching.
+    const iframe = document.createElement('iframe');
+    iframe.id = 'aemExperimentationIFrameContent';
+    iframe.src =
+      'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick.html?env=qa&pageUrl=' +
+      encodeURIComponent(window.location.href) +
+      '&source=plugin&t=' +
+      new Date().getTime();
+    container.appendChild(iframe);
+    return container;
   }
 
-  // Simply toggles the panel’s visibility.
   function toggleExperimentPanel(forceShow = false) {
-      const container = document.getElementById('aemExperimentation');
-      if (container) {     
-          if (forceShow) {
-              container.classList.remove('aemExperimentationHidden');
-          } else {
-              container.classList.toggle('aemExperimentationHidden');
-          }
-      }
-  }
-
-  // Polls until the iframe URL shows that authentication is complete.
-  function waitForAuth() {
-      return new Promise((resolve) => {
-          const checkAuth = () => {
-              const iframe = document.getElementById('aemExperimentationIFrameContent');
-              if (
-                  iframe &&
-                  iframe.contentWindow &&
-                  iframe.contentWindow.location &&
-                  iframe.contentWindow.location.href &&
-                  iframe.contentWindow.location.href.includes('experience-qa.adobe.com')
-              ) {
-                  console.log('[AEM Exp] Auth ready');
-                  resolve();
-              } else {
-                  console.log('[AEM Exp] Waiting for auth...');
-                  setTimeout(checkAuth, 100);
-              }
-          };
-          checkAuth();
-      });
-  }
-
-  // Loads the AEM experimentation app. In simulation mode (when isSimulation is true),
-  // we “recreate” the panel (and iframe) so that a fresh auth session is triggered.
-  function loadAEMExperimentationApp(isSimulation = false) {
-      if (isSimulation && !isHandlingSimulation) {
-          console.log('[AEM Exp] Starting simulation');
-          isHandlingSimulation = true;
-          // Create (or update) the panel so that we get a new iframe load.
-          createExperimentPanel();
-          // Wait for the new iframe to get its auth state
-          return waitForAuth().then(() => {
-              const container = document.getElementById('aemExperimentation');
-              if (container) {
-                  container.classList.remove('aemExperimentationHidden');
-                  console.log('[AEM Exp] Container shown after auth ready');
-              }
-              isHandlingSimulation = false;
-          });
-      }
-
-      // Otherwise, proceed with the original first-load logic.
-      if (!isAEMExperimentationAppLoaded) {
-          scriptLoadPromise = new Promise((resolve, reject) => {
-              const script = document.createElement('script');
-              script.src =
-                  'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
-              script.onload = function() {
-                  isAEMExperimentationAppLoaded = true;
-                  resolve();
-              };
-              script.onerror = reject;
-              document.head.appendChild(script);
-          });
-      }
-      return scriptLoadPromise;
-  }
-
-  // This is the manual (sidekick) click handler.
-  // It now calls createExperimentPanel() to ensure a proper panel/iframe exists.
-  function handleSidekickPluginButtonClick() {
-      createExperimentPanel();
-      if (!isAEMExperimentationAppLoaded) {
-          loadAEMExperimentationApp()
-              .then(() => {
-                  console.log('[AEM Exp] First load - showing panel');
-                  toggleExperimentPanel(true);
-              })
-              .catch(error => {
-                  console.error('[AEM Exp] Failed to load:', error);
-              });
+    const container = document.getElementById('aemExperimentation');
+    if (container) {
+      if (forceShow) {
+        container.classList.remove('aemExperimentationHidden');
       } else {
-          // For subsequent clicks, simply toggle the panel.
-          toggleExperimentPanel(false);
+        container.classList.toggle('aemExperimentationHidden');
       }
+    }
   }
 
-  // Helper: waits for the sidekick element to be ready.
-  function waitForSidekick() {
-      return new Promise((resolve) => {
-          const check = () => {
-              const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
-              if (sidekick) {
-                  console.log('[AEM Exp] Sidekick ready');
-                  resolve(sidekick);
-              } else {
-                  console.log('[AEM Exp] Waiting for sidekick...');
-                  setTimeout(check, 100);
-              }
-          };
-          check();
+  // Keep checking until the iframe's URL indicates that authentication is ready.
+  function waitForAuth() {
+    return new Promise((resolve) => {
+      const checkAuth = () => {
+        const iframe = document.getElementById('aemExperimentationIFrameContent');
+        if (
+          iframe &&
+          iframe.contentWindow &&
+          iframe.contentWindow.location &&
+          iframe.contentWindow.location.href &&
+          iframe.contentWindow.location.href.includes('experience-qa.adobe.com')
+        ) {
+          console.log('[AEM Exp] Auth ready');
+          resolve();
+        } else {
+          console.log('[AEM Exp] Waiting for auth...');
+          setTimeout(checkAuth, 100);
+        }
+      };
+      checkAuth();
+    });
+  }
+
+  // Load the experimentation app. In simulation mode we force a refresh by re-creating the panel.
+  function loadAEMExperimentationApp(isSimulation = false) {
+    if (isSimulation && !isHandlingSimulation) {
+      console.log('[AEM Exp] Starting simulation');
+      isHandlingSimulation = true;
+      // Instead of just triggering the sidekick click, re-create the experiment panel to refresh the iframe.
+      createExperimentPanel();
+      return waitForAuth().then(() => {
+        const container = document.getElementById('aemExperimentation');
+        if (container) {
+          container.classList.remove('aemExperimentationHidden');
+          console.log('[AEM Exp] Container shown after auth ready');
+        }
+        isHandlingSimulation = false;
       });
+    }
+
+    // Original first-load logic (loads client.js only once).
+    if (!isAEMExperimentationAppLoaded) {
+      scriptLoadPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src =
+          'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
+        script.onload = function () {
+          isAEMExperimentationAppLoaded = true;
+          resolve();
+        };
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    }
+    return scriptLoadPromise;
   }
 
-  // Checks the URL parameters and triggers simulation if the "simulate" parameter is present.
-  function checkExperimentParams() {
-      console.log('[AEM Exp] Starting checkExperimentParams');
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.has('simulate')) {
-          console.log('[AEM Exp] Simulation parameter detected');
-          loadAEMExperimentationApp(true)
-              .then(() => {
-                  console.log('[AEM Exp] Simulation branch completed.');
-              })
-              .catch((err) => {
-                  console.error('[AEM Exp] Simulation branch error:', err);
-              });
-      }
+  // When a manual sidekick click is detected, also re-creates the panel.
+  function handleSidekickPluginButtonClick() {
+    createExperimentPanel();
+    if (!isAEMExperimentationAppLoaded) {
+      loadAEMExperimentationApp()
+        .then(() => {
+          console.log('[AEM Exp] First load - showing panel');
+          toggleExperimentPanel(true);
+        })
+        .catch((error) => {
+          console.error('[AEM Exp] Failed to load:', error);
+        });
+    } else {
+      toggleExperimentPanel(false);
+    }
   }
 
-  // Initialize Sidekick event listener (manual trigger)
+  // Listen for the sidekick event.
   const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
   if (sidekick) {
-      sidekick.addEventListener('custom:aem-experimentation-sidekick', handleSidekickPluginButtonClick);
+    sidekick.addEventListener('custom:aem-experimentation-sidekick', handleSidekickPluginButtonClick);
   } else {
-      document.addEventListener(
-          'sidekick-ready',
-          () => {
-              const sidekickElement = document.querySelector('helix-sidekick, aem-sidekick');
-              if (sidekickElement) {
-                  sidekickElement.addEventListener('custom:aem-experimentation-sidekick', handleSidekickPluginButtonClick);
-              }
-          },
-          { once: true }
-      );
+    document.addEventListener(
+      'sidekick-ready',
+      () => {
+        const sidekickElement = document.querySelector('helix-sidekick, aem-sidekick');
+        if (sidekickElement) {
+          sidekickElement.addEventListener('custom:aem-experimentation-sidekick', handleSidekickPluginButtonClick);
+        }
+      },
+      { once: true }
+    );
   }
 
-  // Kick off check for experiment parameters on load.
+  // This function checks for a URL parameter (e.g., ?simulate) and triggers simulation mode.
+  function checkExperimentParams() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('simulate')) {
+      loadAEMExperimentationApp(true)
+        .then(() => {
+          console.log('[AEM Exp] Simulation branch completed.');
+        })
+        .catch((err) => {
+          console.error('[AEM Exp] Simulation branch error:', err);
+        });
+    }
+  }
+
+  // Kick off the experiment params check on page load.
   if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', checkExperimentParams);
+    document.addEventListener('DOMContentLoaded', checkExperimentParams);
   } else {
-      checkExperimentParams();
+    checkExperimentParams();
   }
 })();
