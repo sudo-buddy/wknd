@@ -1,7 +1,6 @@
 (function () {
   let isAEMExperimentationAppLoaded = false;
   let scriptLoadPromise = null;
-  let isHandlingSimulation = false;
 
   function toggleExperimentPanel(forceShow = false) {
       const container = document.getElementById('aemExperimentation');
@@ -30,6 +29,22 @@
       });
   }
 
+  function waitForSidekick() {
+      return new Promise((resolve) => {
+          const check = () => {
+              const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
+              if (sidekick) {
+                  console.log('[AEM Exp] Sidekick ready');
+                  resolve(sidekick);
+              } else {
+                  console.log('[AEM Exp] Waiting for sidekick...');
+                  setTimeout(check, 100);
+              }
+          };
+          check();
+      });
+  }
+
   function loadAEMExperimentationApp(isSimulation = false) {
       if (!isAEMExperimentationAppLoaded) {
           scriptLoadPromise = new Promise((resolve, reject) => {
@@ -46,48 +61,8 @@
       return scriptLoadPromise;
   }
 
-  function simulateButtonClick() {
-      const sidekick = document.querySelector('aem-sidekick');
-      if (sidekick) {
-          // Find the actual button in sidekick
-          const buttons = sidekick.shadowRoot.querySelectorAll('button');
-          let expButton;
-          for (const button of buttons) {
-              if (button.textContent.includes('Experimentation')) {
-                  expButton = button;
-                  break;
-              }
-          }
-          
-          if (expButton) {
-              console.log('[AEM Exp] Found experimentation button, clicking');
-              expButton.click();
-              return true;
-          }
-      }
-      return false;
-  }
-
-  function checkExperimentParams() {
-      console.log('[AEM Exp] Starting checkExperimentParams');
-      waitForSidekick()
-          .then(() => {
-              // Try to simulate the button click
-              if (!simulateButtonClick()) {
-                  console.log('[AEM Exp] Could not find button, falling back to event dispatch');
-                  const sidekick = document.querySelector('aem-sidekick');
-                  if (sidekick) {
-                      const event = new CustomEvent('custom:aem-experimentation-sidekick');
-                      sidekick.dispatchEvent(event);
-                  }
-              }
-          })
-          .catch(error => {
-              console.error('[AEM Exp] Failed in checkExperimentParams:', error);
-          });
-  }
-
-  function handleSidekickPluginButtonClick() {
+  function handleSidekickPluginButtonClick(isAuto = false) {
+      console.log('[AEM Exp] Handle button click, isAuto:', isAuto);
       const panel = document.getElementById('aemExperimentation');
 
       if (!isAEMExperimentationAppLoaded) {
@@ -95,7 +70,19 @@
               .then(() => {
                   if (panel) {
                       console.log('[AEM Exp] First load - showing panel');
-                      toggleExperimentPanel(true); 
+                      toggleExperimentPanel(true);
+                      
+                      // If auto mode, wait for auth and then trigger the real click
+                      if (isAuto) {
+                          return waitForAuth().then(() => {
+                              console.log('[AEM Exp] Auth ready, triggering real click');
+                              const sidekick = document.querySelector('aem-sidekick');
+                              if (sidekick) {
+                                  const event = new CustomEvent('custom:aem-experimentation-sidekick');
+                                  sidekick.dispatchEvent(event);
+                              }
+                          });
+                      }
                   }
               })
               .catch(error => {
@@ -106,17 +93,28 @@
       }
   }
 
+  function checkExperimentParams() {
+      console.log('[AEM Exp] Starting checkExperimentParams');
+      waitForSidekick()
+          .then(() => {
+              handleSidekickPluginButtonClick(true); // Pass true for auto mode
+          })
+          .catch(error => {
+              console.error('[AEM Exp] Failed in checkExperimentParams:', error);
+          });
+  }
+
   // Initialize Sidekick
   const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
   if (sidekick) {
-      sidekick.addEventListener('custom:aem-experimentation-sidekick', handleSidekickPluginButtonClick);
+      sidekick.addEventListener('custom:aem-experimentation-sidekick', () => handleSidekickPluginButtonClick(false));
   } else {
       document.addEventListener(
           'sidekick-ready',
           () => {
               const sidekickElement = document.querySelector('helix-sidekick, aem-sidekick');
               if (sidekickElement) {
-                  sidekickElement.addEventListener('custom:aem-experimentation-sidekick', handleSidekickPluginButtonClick);
+                  sidekickElement.addEventListener('custom:aem-experimentation-sidekick', () => handleSidekickPluginButtonClick(false));
               }
           },
           { once: true }
