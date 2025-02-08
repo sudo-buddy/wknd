@@ -65,22 +65,6 @@
     return scriptLoadPromise;
 }
 
-  // Helper functions from client.js
-  function stripTrailingSlash(url) {
-      return url.endsWith('/') ? url.slice(0, -1) : url;
-  }
-
-  function addQueryParams(url, params) {
-      const urlObj = new URL(url);
-      const searchParams = new URLSearchParams(urlObj.search);
-      for (const key in params) {
-          searchParams.set(key, params[key]);
-      }
-      urlObj.search = searchParams.toString();
-      return urlObj.toString();
-  }
-
-
   function handleSidekickPluginButtonClick() {
       const panel = document.getElementById('aemExperimentation');
 
