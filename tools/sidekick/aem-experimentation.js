@@ -47,17 +47,8 @@
 }
 
 function checkExperimentParams() {
-  waitForSidekick()
-      .then((sidekick) => {
-          // Find the actual button
-          const button = sidekick.querySelector('sp-action-button[data-testid="aem-experimentation-sidekick"]');
-          if (button) {
-              // Trigger actual click on the button
-              button.click();
-          } else {
-              console.error('[AEM Exp] Could not find sidekick button');
-          }
-      })
+  // Call loadAEMExperimentationApp with isSimulation = true
+  loadAEMExperimentationApp(true)
       .catch(error => {
           console.error('[AEM Exp] Failed to initialize:', error);
       });
