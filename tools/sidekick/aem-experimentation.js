@@ -116,6 +116,7 @@
                 panel.classList.remove('aemExperimentationHidden');
             } else {
                 // Only create new if doesn't exist
+                console.log('xinyiyiyiyiyiyiy Panel does not exist - creating it');
                 loadAEMExperimentationApp();
             }
         }
