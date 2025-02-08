@@ -85,19 +85,21 @@
   }
 
   function checkExperimentParams() {
-      // If we're in simulation mode, trigger the load directly
-      loadAEMExperimentationApp()
-          .then(() => {
-              const panel = document.getElementById('aemExperimentation');
-              if (panel) {
-                  console.log('[AEM Exp] Simulation mode - showing panel');
-                  toggleExperimentPanel(true);
-              }
-          })
-          .catch(error => {
-              console.error('[AEM Exp] Failed to load:', error);
-          });
-  }
+    // If we're in simulation mode, trigger the load directly
+    loadAEMExperimentationApp()
+        .then(() => {
+            return waitForAuth().then(() => {
+                const panel = document.getElementById('aemExperimentation');
+                if (panel) {
+                    console.log('[AEM Exp] Simulation mode - showing panel');
+                    toggleExperimentPanel(true);
+                }
+            });
+        })
+        .catch(error => {
+            console.error('[AEM Exp] Failed to load:', error);
+        });
+}
 
   // Check for experiment parameters on load
   if (document.readyState === 'loading') {
