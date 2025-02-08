@@ -31,7 +31,16 @@
           scriptLoadPromise = null;
 
           // Trigger like initial click
-          return handleSidekickPluginButtonClick(true);
+          return new Promise((resolve) => {
+            handleSidekickPluginButtonClick()
+                .then(() => {
+                    // Give auth provider time to initialize
+                    setTimeout(() => {
+                        console.log('[AEM Exp] Auth provider ready');
+                        resolve();
+                    }, 500);
+                });
+        });
       }
 
       // Original first-load logic
