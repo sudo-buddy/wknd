@@ -112,6 +112,7 @@
             // If panel exists, show it and let the app handle the view change
             const panel = document.getElementById('aemExperimentation');
             if (panel) {
+              console.log('xinyiyiyiyiyiyiy Panel exists - showing it');
                 panel.classList.remove('aemExperimentationHidden');
             } else {
                 // Only create new if doesn't exist
