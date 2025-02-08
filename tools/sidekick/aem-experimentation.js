@@ -47,23 +47,20 @@
 }
 
 function checkExperimentParams() {
-    waitForSidekick()
-        .then(() => loadAEMExperimentationApp())
-        .then(() => {
-            // Show panel first
-            const panel = document.getElementById('aemExperimentation');
-            if (panel) {
-                console.log('[AEM Exp] First load - showing panel');
-                toggleExperimentPanel(true); 
-            }
-            
-            // Trigger sign in directly
-            const event = new CustomEvent('custom:aem-experimentation-sidekick');
-            document.dispatchEvent(event);
-        })
-        .catch(error => {
-            console.error('[AEM Exp] Failed to initialize:', error);
-        });
+  waitForSidekick()
+      .then((sidekick) => {
+          // Find the actual button
+          const button = sidekick.querySelector('sp-action-button[data-testid="aem-experimentation-sidekick"]');
+          if (button) {
+              // Trigger actual click on the button
+              button.click();
+          } else {
+              console.error('[AEM Exp] Could not find sidekick button');
+          }
+      })
+      .catch(error => {
+          console.error('[AEM Exp] Failed to initialize:', error);
+      });
 }
 
   function handleSidekickPluginButtonClick() {
