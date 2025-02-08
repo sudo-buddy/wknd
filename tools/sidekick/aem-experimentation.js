@@ -41,30 +41,44 @@
   }
 
   function loadAEMExperimentationApp(isSimulation = false) {
-      if (isSimulation) {
-          console.log('[AEM Exp] Starting simulation');
-          
-          // Remove existing container if any
-          const existingContainer = document.getElementById('aemExperimentation');
-          if (existingContainer) {
-              existingContainer.remove();
-          }
+    if (isSimulation) {
+        console.log('[AEM Exp] Starting simulation');
+        
+        // Remove existing container if any
+        const existingContainer = document.getElementById('aemExperimentation');
+        if (existingContainer) {
+            existingContainer.remove();
+        }
 
-          // Reset states
-          isAEMExperimentationAppLoaded = false;
-          scriptLoadPromise = null;
+        // Reset states
+        isAEMExperimentationAppLoaded = false;
+        scriptLoadPromise = null;
 
-          // Create new container immediately
-          createExperimentContainer();
-
-          return waitForAuth().then(() => {
-              const container = document.getElementById('aemExperimentation');
-              if (container) {
-                  container.classList.remove('aemExperimentationHidden');
-                  console.log('[AEM Exp] Container shown after auth ready');
-              }
-          });
-      }
+        // First inject the script
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
+            script.onload = function() {
+                isAEMExperimentationAppLoaded = true;
+                console.log('[AEM Exp] Script loaded for simulation');
+                
+                // Then create container
+                createExperimentContainer();
+                
+                // Wait for auth and show container
+                waitForAuth().then(() => {
+                    const container = document.getElementById('aemExperimentation');
+                    if (container) {
+                        container.classList.remove('aemExperimentationHidden');
+                        console.log('[AEM Exp] Container shown after auth ready');
+                    }
+                    resolve();
+                });
+            };
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
 
       // Original first-load logic
       if (!isAEMExperimentationAppLoaded) {
