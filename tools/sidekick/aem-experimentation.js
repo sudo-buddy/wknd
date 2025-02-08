@@ -60,49 +60,64 @@
       });
   }
 
-  function handleExperimentOpen(isAuto = false) {
-      console.log('[AEM Exp] Handling experiment open, isAuto:', isAuto);
-      const panel = document.getElementById('aemExperimentation');
-      
-      if (!isAEMExperimentationAppLoaded) {
-          loadAEMExperimentationApp()
-              .then(() => {
-                  if (panel) {
-                      console.log('[AEM Exp] Panel found, showing it');
-                      toggleExperimentPanel(true);
-                      
-                      return waitForAuth().then(() => {
-                          if (isAuto) {
-                              console.log('[AEM Exp] Auto mode - dispatching event');
-                              const sidekick = document.querySelector('aem-sidekick');
-                              if (sidekick) {
-                                  const event = new CustomEvent('custom:aem-experimentation-sidekick');
-                                  sidekick.dispatchEvent(event);
-                                  console.log('[AEM Exp] Event dispatched');
-                              }
-                          }
-                      });
-                  } else {
-                      console.log('[AEM Exp] No panel found, but auth might exist');
-                      // Try to reuse existing auth if available
-                      if (sessionStorage.getItem('aemExpAuth')) {
-                          console.log('[AEM Exp] Reusing existing auth session');
-                          const sidekick = document.querySelector('aem-sidekick');
-                          if (sidekick) {
-                              const event = new CustomEvent('custom:aem-experimentation-sidekick');
-                              sidekick.dispatchEvent(event);
-                          }
-                      }
-                  }
-              })
-              .catch(error => {
-                  console.error('[AEM Exp] Failed in handleExperimentOpen:', error);
-              });
-      } else {
-          console.log('[AEM Exp] App already loaded, toggling panel');
-          toggleExperimentPanel(false);
-      }
-  }
+  function createExperimentPanel() {
+    console.log('[AEM Exp] Creating experiment panel');
+    const panel = document.createElement('div');
+    panel.id = 'aemExperimentation';
+
+    const mover = document.createElement('div');
+    mover.id = 'aemExperimentationMover';
+    
+    const iframe = document.createElement('iframe');
+    iframe.id = 'aemExperimentationIFrameContent';
+    iframe.src = `https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick.html?env=qa&pageUrl=${encodeURIComponent(window.location.href)}&source=plugin&t=${Date.now()}`;
+    
+    panel.appendChild(mover);
+    panel.appendChild(iframe);
+    document.body.appendChild(panel);
+    return panel;
+}
+
+function handleExperimentOpen(isAuto = false) {
+    console.log('[AEM Exp] Handling experiment open, isAuto:', isAuto);
+    let panel = document.getElementById('aemExperimentation');
+    
+    if (!isAEMExperimentationAppLoaded) {
+        loadAEMExperimentationApp()
+            .then(() => {
+                if (!panel) {
+                    console.log('[AEM Exp] Creating new panel');
+                    panel = createExperimentPanel();
+                }
+                console.log('[AEM Exp] Panel ready, showing it');
+                toggleExperimentPanel(true);
+                
+                return waitForAuth().then(() => {
+                    if (isAuto) {
+                        console.log('[AEM Exp] Auto mode - dispatching event after auth');
+                        const sidekick = document.querySelector('aem-sidekick');
+                        if (sidekick) {
+                            const event = new CustomEvent('custom:aem-experimentation-sidekick');
+                            sidekick.dispatchEvent(event);
+                            console.log('[AEM Exp] Event dispatched');
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('[AEM Exp] Failed in handleExperimentOpen:', error);
+            });
+    } else {
+        if (!panel) {
+            console.log('[AEM Exp] Recreating panel for existing app');
+            panel = createExperimentPanel();
+            toggleExperimentPanel(true);
+        } else {
+            console.log('[AEM Exp] App already loaded, toggling panel');
+            toggleExperimentPanel(false);
+        }
+    }
+}
 
   function checkExperimentParams() {
       console.log('[AEM Exp] Starting checkExperimentParams');
