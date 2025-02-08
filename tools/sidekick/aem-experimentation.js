@@ -84,27 +84,55 @@
       );
   }
 
-  function checkExperimentParams() {
-    // If we're in simulation mode, trigger the load directly
-    loadAEMExperimentationApp()
+  function waitForSidekick() {
+    return new Promise((resolve) => {
+        const check = () => {
+            const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
+            if (sidekick) {
+                console.log('[AEM Exp] Sidekick ready');
+                resolve(sidekick);
+            } else {
+                console.log('[AEM Exp] Waiting for sidekick...');
+                setTimeout(check, 100);
+            }
+        };
+        check();
+    });
+}
+
+function checkExperimentParams() {
+    // Wait for sidekick first
+    waitForSidekick()
+        .then(() => loadAEMExperimentationApp())
+        .then(() => waitForAuth())
         .then(() => {
-            return waitForAuth().then(() => {
-                const panel = document.getElementById('aemExperimentation');
-                if (panel) {
-                    console.log('[AEM Exp] Simulation mode - showing panel');
-                    toggleExperimentPanel(true);
-                }
-            });
+            const panel = document.getElementById('aemExperimentation');
+            if (panel) {
+                console.log('[AEM Exp] Simulation mode - showing panel');
+                toggleExperimentPanel(true);
+            }
         })
         .catch(error => {
             console.error('[AEM Exp] Failed to load:', error);
         });
 }
 
-  // Check for experiment parameters on load
-  if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', checkExperimentParams);
-  } else {
-      checkExperimentParams();
-  }
+// Initialize Sidekick event listener
+document.addEventListener(
+    'sidekick-ready',
+    () => {
+        const sidekickElement = document.querySelector('helix-sidekick, aem-sidekick');
+        if (sidekickElement) {
+            sidekickElement.addEventListener('custom:aem-experimentation-sidekick', handleSidekickPluginButtonClick);
+        }
+    },
+    { once: true }
+);
+
+// Check for experiment parameters on load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkExperimentParams);
+} else {
+    checkExperimentParams();
+}
 })();
