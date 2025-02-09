@@ -3,45 +3,15 @@
   let scriptLoadPromise = null;
   let isHandlingSimulation = false;
 
-  function shouldRefreshForExperiment() {
-      const currentExperiment = new URLSearchParams(window.location.search).get('experiment');
-      const lastExperiment = sessionStorage.getItem('lastExperimentParam');
-      const currentSimState = sessionStorage.getItem('simulationState');
-
-      // Force refresh if:
-      // 1. Experiment param changed
-      // 2. Have experiment param but no simulation state
-      // 3. Have experiment param but no last experiment record
-      if (currentExperiment && (
-          (lastExperiment && currentExperiment !== lastExperiment) ||
-          !currentSimState ||
-          !lastExperiment
-      )) {
-          console.log('[AEM Exp] Need refresh:', {
-              current: currentExperiment,
-              last: lastExperiment,
-              hasSimState: !!currentSimState
-          });
-          sessionStorage.setItem('lastExperimentParam', currentExperiment);
-          return true;
-      }
-
-      if (currentExperiment) {
-          sessionStorage.setItem('lastExperimentParam', currentExperiment);
-      }
-      
-      return false;
-  }
-
-  function toggleExperimentPanel(forceShow = false) {
-      const container = document.getElementById('aemExperimentation');
-      if (container) {     
-          if (forceShow) {
-              container.classList.remove('aemExperimentationHidden');
-          } else {
-              container.classList.toggle('aemExperimentationHidden');
-          }
-      }
+  function forceRefresh() {
+      console.log('[AEM Exp] Force refreshing page');
+      // Clear all states
+      isHandlingSimulation = false;
+      isAEMExperimentationAppLoaded = false;
+      scriptLoadPromise = null;
+      sessionStorage.removeItem('experimentInitialized');
+      // Force a hard refresh
+      window.location.href = window.location.href;
   }
 
   function checkIframeStatus(maxWaitTime = 5000) {
@@ -49,30 +19,27 @@
           const startTime = Date.now();
           
           const checkFrame = () => {
-              const container = document.getElementById('aemExperimentation');
               const iframe = document.querySelector('#aemExperimentationIFrameContent');
               
-              if (container) {
-                  container.classList.remove('aemExperimentationHidden');
-              }
-
               if (!iframe) {
                   if (Date.now() - startTime < maxWaitTime) {
                       setTimeout(checkFrame, 100);
                   } else {
+                      forceRefresh();
                       reject('iframe not found');
                   }
                   return;
               }
 
               try {
-                  if (iframe.contentDocument === null) {
-                      console.log('[AEM Exp] Auth issue detected, refreshing...');
-                      window.location.reload();
+                  // If we can't access contentDocument, auth is likely missing
+                  if (iframe.contentDocument === null || !iframe.contentWindow) {
+                      forceRefresh();
                       return;
                   }
                   resolve();
               } catch (e) {
+                  // Cross-origin error means iframe loaded
                   resolve();
               }
           };
@@ -103,23 +70,27 @@
                   if (container) {
                       container.classList.remove('aemExperimentationHidden');
                       
+                      // Check iframe status immediately
                       checkIframeStatus()
                           .then(resolve)
                           .catch(() => {
-                              console.log('[AEM Exp] Container ready but iframe issue detected');
-                              window.location.reload();
+                              console.log('[AEM Exp] Container ready but iframe/auth issue detected');
+                              forceRefresh();
                           });
                   } else if (retries < maxRetries) {
                       setTimeout(() => waitForContainer(retries + 1, maxRetries), 200);
                   } else {
-                      resolve();
+                      forceRefresh();
                   }
               };
               
               waitForContainer();
           };
 
-          script.onerror = reject;
+          script.onerror = () => {
+              forceRefresh();
+              reject(new Error('Script load failed'));
+          };
           document.head.appendChild(script);
       });
 
@@ -203,9 +174,10 @@
   }
 
   // Check for experiment parameters on load
-  if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', checkExperimentParams);
-  } else {
-      checkExperimentParams();
-  }
+  // if (document.readyState === 'loading') {
+  //     document.addEventListener('DOMContentLoaded', checkExperimentParams);
+  // } else {
+  //     checkExperimentParams();
+  // }
+  checkExperimentParams();
 })();
