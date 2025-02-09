@@ -3,13 +3,59 @@
   let scriptLoadPromise = null;
   let isHandlingSimulation = false;
 
-  // Add a function to check iframe status
+  function shouldRefreshForExperiment() {
+      const currentExperiment = new URLSearchParams(window.location.search).get('experiment');
+      const lastExperiment = sessionStorage.getItem('lastExperimentParam');
+      const currentSimState = sessionStorage.getItem('simulationState');
+
+      // Force refresh if:
+      // 1. Experiment param changed
+      // 2. Have experiment param but no simulation state
+      // 3. Have experiment param but no last experiment record
+      if (currentExperiment && (
+          (lastExperiment && currentExperiment !== lastExperiment) ||
+          !currentSimState ||
+          !lastExperiment
+      )) {
+          console.log('[AEM Exp] Need refresh:', {
+              current: currentExperiment,
+              last: lastExperiment,
+              hasSimState: !!currentSimState
+          });
+          sessionStorage.setItem('lastExperimentParam', currentExperiment);
+          return true;
+      }
+
+      if (currentExperiment) {
+          sessionStorage.setItem('lastExperimentParam', currentExperiment);
+      }
+      
+      return false;
+  }
+
+  function toggleExperimentPanel(forceShow = false) {
+      const container = document.getElementById('aemExperimentation');
+      if (container) {     
+          if (forceShow) {
+              container.classList.remove('aemExperimentationHidden');
+          } else {
+              container.classList.toggle('aemExperimentationHidden');
+          }
+      }
+  }
+
   function checkIframeStatus(maxWaitTime = 5000) {
       return new Promise((resolve, reject) => {
           const startTime = Date.now();
           
           const checkFrame = () => {
+              const container = document.getElementById('aemExperimentation');
               const iframe = document.querySelector('#aemExperimentationIFrameContent');
+              
+              if (container) {
+                  container.classList.remove('aemExperimentationHidden');
+              }
+
               if (!iframe) {
                   if (Date.now() - startTime < maxWaitTime) {
                       setTimeout(checkFrame, 100);
@@ -20,7 +66,6 @@
               }
 
               try {
-                  // Try to access iframe content - if auth failed this will be pending
                   if (iframe.contentDocument === null) {
                       console.log('[AEM Exp] Auth issue detected, refreshing...');
                       window.location.reload();
@@ -28,7 +73,6 @@
                   }
                   resolve();
               } catch (e) {
-                  // Cross-origin error means iframe loaded
                   resolve();
               }
           };
@@ -53,11 +97,12 @@
 
           script.onload = function () {
               isAEMExperimentationAppLoaded = true;
-              // Wait for container and check iframe
+              
               const waitForContainer = (retries = 0, maxRetries = 20) => {
                   const container = document.getElementById('aemExperimentation');
                   if (container) {
-                      toggleExperimentPanel(true);
+                      container.classList.remove('aemExperimentationHidden');
+                      
                       checkIframeStatus()
                           .then(resolve)
                           .catch(() => {
@@ -85,13 +130,23 @@
       const urlParams = new URLSearchParams(window.location.search);
       const experimentParam = urlParams.get('experiment');
 
+      // Always check for refresh first
+      if (shouldRefreshForExperiment()) {
+          console.log('[AEM Exp] Triggering refresh');
+          // Clear any existing state before refresh
+          isHandlingSimulation = false;
+          isAEMExperimentationAppLoaded = false;
+          scriptLoadPromise = null;
+          window.location.reload();
+          return;
+      }
+
       if (experimentParam && !isHandlingSimulation) {
           const decodedParam = decodeURIComponent(experimentParam);
-
           const [experimentId, variantId] = decodedParam.split('/');
+          
           if (experimentId) {
               isHandlingSimulation = true;
-              // Set simulation state
               const simulationState = {
                   isSimulation: true,
                   source: 'plugin',
@@ -100,43 +155,38 @@
               };
               console.log('[AEM Exp] Setting simulation state:', simulationState);
 
+              // Set all states at once
               sessionStorage.setItem('simulationState', JSON.stringify(simulationState));
               sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
               sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
               sessionStorage.setItem('aemExperimentation_variantId', variantId || 'control');
+              sessionStorage.setItem('lastExperimentParam', experimentParam);
 
-              // Load app and force show
               loadAEMExperimentationApp()
                   .then(() => {
-                      const panel = document.getElementById('aemExperimentation');
-                      if (panel) {
-                          panel.classList.remove('aemExperimentationHidden');
+                      const container = document.getElementById('aemExperimentation');
+                      if (container) {
+                          container.classList.remove('aemExperimentationHidden');
                       }
                   })
                   .catch((error) => {
                       console.error('[AEM Exp] Error loading app:', error);
+                      // If loading fails, try refreshing
+                      window.location.reload();
                   });
           }
       }
   }
 
   function handleSidekickPluginButtonClick() {
-    const panel = document.getElementById('aemExperimentation');
-
-    if (!isAEMExperimentationAppLoaded) {
-        loadAEMExperimentationApp()
-            .then(() => {
-                if (panel) {
-                    console.log('[AEM Exp] First load - showing panel');
-                    toggleExperimentPanel(true); 
-                }
-            })
-            .catch(error => {
-                console.error('[AEM Exp] Failed to load:', error);
-            });
-    } else {
-        toggleExperimentPanel(false);
-    }
+      if (!isAEMExperimentationAppLoaded) {
+          loadAEMExperimentationApp()
+              .catch(error => {
+                  console.error('[AEM Exp] Failed to load:', error);
+              });
+      } else {
+          toggleExperimentPanel(false);
+      }
   }
 
   // Initialize Sidekick
@@ -144,16 +194,12 @@
   if (sidekick) {
       sidekick.addEventListener('custom:aem-experimentation-sidekick', handleSidekickPluginButtonClick);
   } else {
-      document.addEventListener(
-          'sidekick-ready',
-          () => {
-              const sidekickElement = document.querySelector('helix-sidekick, aem-sidekick');
-              if (sidekickElement) {
-                  sidekickElement.addEventListener('custom:aem-experimentation-sidekick', handleSidekickPluginButtonClick);
-              }
-          },
-          { once: true }
-      );
+      document.addEventListener('sidekick-ready', () => {
+          const sidekickElement = document.querySelector('helix-sidekick, aem-sidekick');
+          if (sidekickElement) {
+              sidekickElement.addEventListener('custom:aem-experimentation-sidekick', handleSidekickPluginButtonClick);
+          }
+      }, { once: true });
   }
 
   // Check for experiment parameters on load
