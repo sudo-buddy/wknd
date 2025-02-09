@@ -3,6 +3,23 @@
   let scriptLoadPromise = null;
   let isHandlingSimulation = false;
 
+  function shouldRefreshForExperiment() {
+      const currentExperiment = new URLSearchParams(window.location.search).get('experiment');
+      const lastExperiment = sessionStorage.getItem('lastExperimentParam');
+
+      if (currentExperiment && lastExperiment && currentExperiment !== lastExperiment) {
+          console.log('[AEM Exp] Experiment changed from', lastExperiment, 'to', currentExperiment);
+          sessionStorage.setItem('lastExperimentParam', currentExperiment);
+          return true;
+      }
+
+      if (currentExperiment) {
+          sessionStorage.setItem('lastExperimentParam', currentExperiment);
+      }
+      
+      return false;
+  }
+
   function toggleExperimentPanel(forceShow = false) {
       const container = document.getElementById('aemExperimentation');
       if (container) {     
@@ -22,7 +39,6 @@
               const container = document.getElementById('aemExperimentation');
               const iframe = document.querySelector('#aemExperimentationIFrameContent');
               
-              // Always ensure container is visible when checking
               if (container) {
                   container.classList.remove('aemExperimentationHidden');
               }
@@ -72,7 +88,6 @@
               const waitForContainer = (retries = 0, maxRetries = 20) => {
                   const container = document.getElementById('aemExperimentation');
                   if (container) {
-                      // Ensure container is visible
                       container.classList.remove('aemExperimentationHidden');
                       
                       checkIframeStatus()
@@ -99,6 +114,13 @@
   }
 
   function checkExperimentParams() {
+      // Check if we need to refresh due to experiment change
+      if (shouldRefreshForExperiment()) {
+          console.log('[AEM Exp] Experiment changed, refreshing page');
+          window.location.reload();
+          return;
+      }
+
       const urlParams = new URLSearchParams(window.location.search);
       const experimentParam = urlParams.get('experiment');
 
@@ -125,7 +147,6 @@
                   .then(() => {
                       const container = document.getElementById('aemExperimentation');
                       if (container) {
-                          // Ensure container is visible after load
                           container.classList.remove('aemExperimentationHidden');
                       }
                   })
