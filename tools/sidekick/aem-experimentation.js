@@ -13,6 +13,23 @@
       }
   }
 
+  function waitForAuth() {
+      console.log('[AEM Exp] Starting auth check');
+      return new Promise((resolve) => {
+          const checkAuth = () => {
+              const iframe = document.querySelector('#aemExperimentationIFrameContent');
+              if (iframe?.contentWindow?.location?.href?.includes('experience-qa.adobe.com')) {
+                  console.log('[AEM Exp] Auth ready');
+                  resolve();
+              } else {
+                  console.log('[AEM Exp] Waiting for auth...');
+                  setTimeout(checkAuth, 100);
+              }
+          };
+          checkAuth();
+      });
+  }
+
   function loadAEMExperimentationApp() {
       console.log('[AEM Exp] Starting app load');
       if (scriptLoadPromise) {
@@ -56,7 +73,7 @@
       return scriptLoadPromise;
   }
 
-  function handleExperimentInitiation(experimentId, variantId = 'control') {
+  async function handleExperimentInitiation(experimentId, variantId = 'control') {
       console.log('[AEM Exp] Initiating experiment:', { experimentId, variantId });
       
       // Set simulation state
@@ -68,9 +85,20 @@
       };
       sessionStorage.setItem('simulationState', JSON.stringify(simulationState));
       
-      // Load and show the app
-      loadAEMExperimentationApp()
-          .catch(error => console.error('[AEM Exp] Failed to load:', error));
+      try {
+          // Load the app
+          await loadAEMExperimentationApp();
+          console.log('[AEM Exp] App loaded, waiting for auth');
+          
+          // Wait for auth to complete
+          await waitForAuth();
+          console.log('[AEM Exp] Auth complete, showing panel');
+          
+          // Show the panel
+          toggleExperimentPanel(true);
+      } catch (error) {
+          console.error('[AEM Exp] Error during experiment initiation:', error);
+      }
   }
 
   // Handle both button clicks and URL parameters
