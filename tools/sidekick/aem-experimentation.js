@@ -3,20 +3,6 @@
   let scriptLoadPromise = null;
   let isHandlingSimulation = false;
 
-  function checkAndRefresh() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const experimentParam = urlParams.get('experiment');
-      const hasRefreshed = sessionStorage.getItem('hasRefreshed');
-
-      if (experimentParam && !hasRefreshed) {
-          console.log('[AEM Exp] First load with experiment param, refreshing page');
-          sessionStorage.setItem('hasRefreshed', 'true');
-          window.location.reload();
-          return true;
-      }
-      return false;
-  }
-
   function toggleExperimentPanel(forceShow = false) {
       const container = document.getElementById('aemExperimentation');
       if (container) {     
@@ -55,51 +41,46 @@
   }
 
   function checkExperimentParams() {
-      if (checkAndRefresh()) {
-          return; // Skip the rest if we're refreshing
-      }
-
       const urlParams = new URLSearchParams(window.location.search);
       const experimentParam = urlParams.get('experiment');
+      const hasInitialized = sessionStorage.getItem('experimentInitialized');
 
-      if (experimentParam && !isHandlingSimulation) {
-          const decodedParam = decodeURIComponent(experimentParam);
-          const [experimentId, variantId] = decodedParam.split('/');
+      if (experimentParam && !hasInitialized) {
+          // First time seeing the experiment parameter - set state and refresh
+          const [experimentId, variantId] = decodeURIComponent(experimentParam).split('/');
           
           if (experimentId) {
-              isHandlingSimulation = true;
-              
-              // Set simulation state
               const simulationState = {
                   isSimulation: true,
                   source: 'plugin',
                   experimentId: experimentId,
                   variantId: variantId || 'control',
               };
-              console.log('[AEM Exp] Setting simulation state:', simulationState);
+              console.log('[AEM Exp] Setting simulation state and refreshing:', simulationState);
               sessionStorage.setItem('simulationState', JSON.stringify(simulationState));
-
-              // Find and click the button directly
-              const findAndClickButton = (retries = 0, maxRetries = 10) => {
-                  const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
-                  const button = sidekick?.shadowRoot?.querySelector('button[data-plugin="aem-experimentation-sidekick"]');
-                  
-                  if (button) {
-                      console.log('[AEM Exp] Found button, clicking');
-                      button.click();
-                  } else if (retries < maxRetries) {
-                      console.log('[AEM Exp] Button not found, retrying...', retries);
-                      setTimeout(() => findAndClickButton(retries + 1, maxRetries), 500);
-                  } else {
-                      console.error('[AEM Exp] Failed to find button after max retries');
-                      // If button click fails, try refreshing again
-                      sessionStorage.removeItem('hasRefreshed');
-                      window.location.reload();
-                  }
-              };
-
-              findAndClickButton();
+              sessionStorage.setItem('experimentInitialized', 'true');
+              window.location.reload();
+              return;
           }
+      }
+
+      // After refresh or if already initialized, proceed with normal flow
+      if (experimentParam && !isHandlingSimulation) {
+          isHandlingSimulation = true;
+          const findAndClickButton = (retries = 0, maxRetries = 10) => {
+              const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
+              const button = sidekick?.shadowRoot?.querySelector('button[data-plugin="aem-experimentation-sidekick"]');
+              
+              if (button) {
+                  console.log('[AEM Exp] Found button, clicking');
+                  button.click();
+              } else if (retries < maxRetries) {
+                  console.log('[AEM Exp] Button not found, retrying...', retries);
+                  setTimeout(() => findAndClickButton(retries + 1, maxRetries), 500);
+              }
+          };
+
+          findAndClickButton();
       }
   }
 
@@ -116,9 +97,6 @@
               })
               .catch(error => {
                   console.error('[AEM Exp] Failed to load:', error);
-                  // If loading fails, try refreshing
-                  sessionStorage.removeItem('hasRefreshed');
-                  window.location.reload();
               });
       } else {
           toggleExperimentPanel(false);
