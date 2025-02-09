@@ -14,63 +14,56 @@
       }
   }
 
-  function loadAEMExperimentationApp() {
-      if (scriptLoadPromise) {
-          return scriptLoadPromise;
-      }
-
-      scriptLoadPromise = new Promise((resolve, reject) => {
-          if (isAEMExperimentationAppLoaded) {
-              resolve();
-              return;
-          }
-
-          const script = document.createElement('script');
-          script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
-
-          script.onload = function () {
-              isAEMExperimentationAppLoaded = true;
-              resolve();
-          };
-
-          script.onerror = reject;
-          document.head.appendChild(script);
-      });
-
-      return scriptLoadPromise;
-  }
-
-  function checkExperimentParams() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const experimentParam = urlParams.get('experiment');
-
-      if (experimentParam && !isHandlingSimulation) {
-          const decodedParam = decodeURIComponent(experimentParam);
-          const [experimentId, variantId] = decodedParam.split('/');
-          
-          if (experimentId) {
-              isHandlingSimulation = true;
-              
-              // Set simulation state
-              const simulationState = {
-                  isSimulation: true,
-                  source: 'plugin',
-                  experimentId: experimentId,
-                  variantId: variantId || 'control',
-              };
-
-              // If this is the first load with parameters, refresh once
-              if (!sessionStorage.getItem('simulationState')) {
-                  sessionStorage.setItem('simulationState', JSON.stringify(simulationState));
-                  window.location.reload();
-                  return;
+  function waitForAuth() {
+      return new Promise((resolve) => {
+          const checkAuth = () => {
+              const iframe = document.querySelector('#aemExperimentationIFrameContent');
+              if (iframe?.contentWindow?.location?.href?.includes('experience-qa.adobe.com')) {
+                  console.log('[AEM Exp] Auth ready');
+                  resolve();
+              } else {
+                  console.log('[AEM Exp] Waiting for auth...');
+                  setTimeout(checkAuth, 100);
               }
-
-              // After refresh, proceed with normal flow
-              handleSidekickPluginButtonClick();
-          }
-      }
+          };
+          checkAuth();
+      });
   }
+
+  function loadAEMExperimentationApp(isSimulation = false) {
+    if (isSimulation && !isHandlingSimulation) {
+        console.log('[AEM Exp] Starting simulation');
+        isHandlingSimulation = true;
+
+        // Directly call the click handler instead of dispatching event
+        handleSidekickPluginButtonClick();
+
+        return waitForAuth().then(() => {
+            const container = document.getElementById('aemExperimentation');
+            if (container) {
+                container.classList.remove('aemExperimentationHidden');
+                console.log('[AEM Exp] Container shown after auth ready');
+            }
+            isHandlingSimulation = false;
+        });
+    }
+
+    // Original first-load logic
+    if (!isAEMExperimentationAppLoaded) {
+        scriptLoadPromise = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
+            script.onload = function() {
+                isAEMExperimentationAppLoaded = true;
+                resolve();
+            };
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
+    return scriptLoadPromise;
+}
 
   function handleSidekickPluginButtonClick() {
       const panel = document.getElementById('aemExperimentation');
@@ -96,12 +89,16 @@
   if (sidekick) {
       sidekick.addEventListener('custom:aem-experimentation-sidekick', handleSidekickPluginButtonClick);
   } else {
-      document.addEventListener('sidekick-ready', () => {
-          const sidekickElement = document.querySelector('helix-sidekick, aem-sidekick');
-          if (sidekickElement) {
-              sidekickElement.addEventListener('custom:aem-experimentation-sidekick', handleSidekickPluginButtonClick);
-          }
-      }, { once: true });
+      document.addEventListener(
+          'sidekick-ready',
+          () => {
+              const sidekickElement = document.querySelector('helix-sidekick, aem-sidekick');
+              if (sidekickElement) {
+                  sidekickElement.addEventListener('custom:aem-experimentation-sidekick', handleSidekickPluginButtonClick);
+              }
+          },
+          { once: true }
+      );
   }
 
   // Check for experiment parameters on load
