@@ -13,56 +13,7 @@
       }
   }
 
-  function waitForAuth() {
-      console.log('[AEM Exp] Starting auth check');
-      return new Promise((resolve) => {
-          let attempts = 0;
-          const maxAttempts = 50; // 5 seconds total
-
-          const checkAuth = () => {
-              const iframe = document.querySelector('#aemExperimentationIFrameContent');
-              attempts++;
-
-              try {
-                  // First check if iframe exists
-                  if (!iframe) {
-                      if (attempts < maxAttempts) {
-                          setTimeout(checkAuth, 100);
-                      }
-                      return;
-                  }
-
-                  // Then check if we can access the contentWindow
-                  if (!iframe.contentWindow) {
-                      if (attempts < maxAttempts) {
-                          setTimeout(checkAuth, 100);
-                      }
-                      return;
-                  }
-
-                  // Finally check the location
-                  const iframeLocation = iframe.contentWindow.location.href;
-                  if (iframeLocation.includes('experience-qa.adobe.com')) {
-                      console.log('[AEM Exp] Auth ready');
-                      resolve();
-                  } else if (attempts < maxAttempts) {
-                      setTimeout(checkAuth, 100);
-                  }
-              } catch (e) {
-                  // If we get a cross-origin error, keep waiting
-                  if (attempts < maxAttempts) {
-                      setTimeout(checkAuth, 100);
-                  }
-              }
-          };
-          
-          // Start checking
-          checkAuth();
-      });
-  }
-
   function loadAEMExperimentationApp() {
-      console.log('[AEM Exp] Starting app load');
       if (scriptLoadPromise) {
           return scriptLoadPromise;
       }
@@ -77,15 +28,11 @@
           script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
           
           script.onload = function () {
-              console.log('[AEM Exp] Script loaded');
               isAEMExperimentationAppLoaded = true;
               resolve();
           };
 
-          script.onerror = (error) => {
-              console.error('[AEM Exp] Script load error:', error);
-              reject(error);
-          };
+          script.onerror = reject;
           document.head.appendChild(script);
       });
 
@@ -95,11 +42,9 @@
   function handleSidekickPluginButtonClick() {
       if (!isAEMExperimentationAppLoaded) {
           loadAEMExperimentationApp()
-              .then(() => waitForAuth())
               .then(() => {
                   const panel = document.getElementById('aemExperimentation');
                   if (panel) {
-                      console.log('[AEM Exp] First load - showing panel');
                       toggleExperimentPanel(true);
                   }
               })
@@ -126,8 +71,11 @@
               };
               sessionStorage.setItem('simulationState', JSON.stringify(simulationState));
               
-              // Trigger the same flow as clicking the button
-              handleSidekickPluginButtonClick();
+              // Just trigger a click on the button
+              const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
+              if (sidekick) {
+                  sidekick.dispatchEvent(new CustomEvent('custom:aem-experimentation-sidekick'));
+              }
           }
       }
   }
