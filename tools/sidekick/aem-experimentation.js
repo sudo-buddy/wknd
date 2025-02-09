@@ -16,16 +16,47 @@
   function waitForAuth() {
       console.log('[AEM Exp] Starting auth check');
       return new Promise((resolve) => {
+          let attempts = 0;
+          const maxAttempts = 50; // 5 seconds total
+
           const checkAuth = () => {
               const iframe = document.querySelector('#aemExperimentationIFrameContent');
-              if (iframe?.contentWindow?.location?.href?.includes('experience-qa.adobe.com')) {
-                  console.log('[AEM Exp] Auth ready');
-                  resolve();
-              } else {
-                  console.log('[AEM Exp] Waiting for auth...');
-                  setTimeout(checkAuth, 100);
+              attempts++;
+
+              try {
+                  // First check if iframe exists
+                  if (!iframe) {
+                      if (attempts < maxAttempts) {
+                          setTimeout(checkAuth, 100);
+                      }
+                      return;
+                  }
+
+                  // Then check if we can access the contentWindow
+                  if (!iframe.contentWindow) {
+                      if (attempts < maxAttempts) {
+                          setTimeout(checkAuth, 100);
+                      }
+                      return;
+                  }
+
+                  // Finally check the location
+                  const iframeLocation = iframe.contentWindow.location.href;
+                  if (iframeLocation.includes('experience-qa.adobe.com')) {
+                      console.log('[AEM Exp] Auth ready');
+                      resolve();
+                  } else if (attempts < maxAttempts) {
+                      setTimeout(checkAuth, 100);
+                  }
+              } catch (e) {
+                  // If we get a cross-origin error, keep waiting
+                  if (attempts < maxAttempts) {
+                      setTimeout(checkAuth, 100);
+                  }
               }
           };
+          
+          // Start checking
           checkAuth();
       });
   }
@@ -43,24 +74,12 @@
           }
 
           const script = document.createElement('script');
-          script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=bookmarklet';
+          script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
           
           script.onload = function () {
               console.log('[AEM Exp] Script loaded');
               isAEMExperimentationAppLoaded = true;
-              // Wait for container to be created
-              const waitForContainer = (retries = 0, maxRetries = 20) => {
-                  const container = document.getElementById('aemExperimentation');
-                  if (container) {
-                      toggleExperimentPanel(true);
-                      resolve();
-                  } else if (retries < maxRetries) {
-                      setTimeout(() => waitForContainer(retries + 1, maxRetries), 200);
-                  } else {
-                      reject(new Error('Container not found after max retries'));
-                  }
-              };
-              waitForContainer();
+              resolve();
           };
 
           script.onerror = (error) => {
@@ -73,73 +92,63 @@
       return scriptLoadPromise;
   }
 
-  async function handleExperimentInitiation(experimentId, variantId = 'control') {
-      console.log('[AEM Exp] Initiating experiment:', { experimentId, variantId });
-      
-      // Set simulation state
-      const simulationState = {
-          isSimulation: true,
-          source: 'plugin',
-          experimentId,
-          variantId
-      };
-      sessionStorage.setItem('simulationState', JSON.stringify(simulationState));
-      
-      try {
-          // Load the app
-          await loadAEMExperimentationApp();
-          console.log('[AEM Exp] App loaded, waiting for auth');
-          
-          // Wait for auth to complete
-          await waitForAuth();
-          console.log('[AEM Exp] Auth complete, showing panel');
-          
-          // Show the panel
-          toggleExperimentPanel(true);
-      } catch (error) {
-          console.error('[AEM Exp] Error during experiment initiation:', error);
+  function handleSidekickPluginButtonClick() {
+      if (!isAEMExperimentationAppLoaded) {
+          loadAEMExperimentationApp()
+              .then(() => waitForAuth())
+              .then(() => {
+                  const panel = document.getElementById('aemExperimentation');
+                  if (panel) {
+                      console.log('[AEM Exp] First load - showing panel');
+                      toggleExperimentPanel(true);
+                  }
+              })
+              .catch(error => {
+                  console.error('[AEM Exp] Failed to load:', error);
+              });
+      } else {
+          toggleExperimentPanel();
       }
   }
 
-  // Handle both button clicks and URL parameters
-  function initialize() {
-      // Check for URL parameters
+  function checkExperimentParams() {
       const urlParams = new URLSearchParams(window.location.search);
       const experimentParam = urlParams.get('experiment');
 
       if (experimentParam) {
           const [experimentId, variantId] = decodeURIComponent(experimentParam).split('/');
           if (experimentId) {
-              handleExperimentInitiation(experimentId, variantId);
-              return;
+              const simulationState = {
+                  isSimulation: true,
+                  source: 'plugin',
+                  experimentId,
+                  variantId: variantId || 'control'
+              };
+              sessionStorage.setItem('simulationState', JSON.stringify(simulationState));
+              
+              // Trigger the same flow as clicking the button
+              handleSidekickPluginButtonClick();
           }
-      }
-
-      // Set up sidekick button handler
-      const setupSidekickListener = (sidekick) => {
-          sidekick.addEventListener('custom:aem-experimentation-sidekick', () => {
-              handleExperimentInitiation('default');
-          });
-      };
-
-      // Initialize Sidekick
-      const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
-      if (sidekick) {
-          setupSidekickListener(sidekick);
-      } else {
-          document.addEventListener('sidekick-ready', () => {
-              const sidekickElement = document.querySelector('helix-sidekick, aem-sidekick');
-              if (sidekickElement) {
-                  setupSidekickListener(sidekickElement);
-              }
-          }, { once: true });
       }
   }
 
-  // Initialize on DOM ready
-  if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initialize);
+  // Initialize Sidekick
+  const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
+  if (sidekick) {
+      sidekick.addEventListener('custom:aem-experimentation-sidekick', handleSidekickPluginButtonClick);
   } else {
-      initialize();
+      document.addEventListener('sidekick-ready', () => {
+          const sidekickElement = document.querySelector('helix-sidekick, aem-sidekick');
+          if (sidekickElement) {
+              sidekickElement.addEventListener('custom:aem-experimentation-sidekick', handleSidekickPluginButtonClick);
+          }
+      }, { once: true });
+  }
+
+  // Check for experiment parameters on load
+  if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', checkExperimentParams);
+  } else {
+      checkExperimentParams();
   }
 })();
