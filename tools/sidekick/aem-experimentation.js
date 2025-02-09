@@ -14,6 +14,7 @@
   }
 
   function loadAEMExperimentationApp() {
+      console.log('[AEM Exp] Starting app load');
       if (scriptLoadPromise) {
           return scriptLoadPromise;
       }
@@ -25,14 +26,18 @@
           }
 
           const script = document.createElement('script');
-          script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
+          script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=bookmarklet';
           
           script.onload = function () {
+              console.log('[AEM Exp] Script loaded');
               isAEMExperimentationAppLoaded = true;
               resolve();
           };
 
-          script.onerror = reject;
+          script.onerror = (error) => {
+              console.error('[AEM Exp] Script load error:', error);
+              reject(error);
+          };
           document.head.appendChild(script);
       });
 
@@ -40,11 +45,13 @@
   }
 
   function handleSidekickPluginButtonClick() {
+      console.log('[AEM Exp] Button clicked');
       if (!isAEMExperimentationAppLoaded) {
           loadAEMExperimentationApp()
               .then(() => {
                   const panel = document.getElementById('aemExperimentation');
                   if (panel) {
+                      console.log('[AEM Exp] First load - showing panel');
                       toggleExperimentPanel(true);
                   }
               })
@@ -69,12 +76,26 @@
                   experimentId,
                   variantId: variantId || 'control'
               };
+              console.log('[AEM Exp] Setting simulation state:', simulationState);
               sessionStorage.setItem('simulationState', JSON.stringify(simulationState));
               
-              // Just trigger a click on the button
-              const sidekick = document.querySelector('helix-sidekick, aem-sidekick');
-              if (sidekick) {
-                  sidekick.dispatchEvent(new CustomEvent('custom:aem-experimentation-sidekick'));
+              // Find the button and click it directly
+              const button = document.querySelector('helix-sidekick, aem-sidekick')
+                  ?.shadowRoot?.querySelector('button[data-plugin="aem-experimentation-sidekick"]');
+              
+              if (button) {
+                  console.log('[AEM Exp] Found button, triggering click');
+                  button.click();
+              } else {
+                  console.log('[AEM Exp] Button not found, waiting for sidekick');
+                  document.addEventListener('sidekick-ready', () => {
+                      const newButton = document.querySelector('helix-sidekick, aem-sidekick')
+                          ?.shadowRoot?.querySelector('button[data-plugin="aem-experimentation-sidekick"]');
+                      if (newButton) {
+                          console.log('[AEM Exp] Found button after wait, triggering click');
+                          newButton.click();
+                      }
+                  }, { once: true });
               }
           }
       }
