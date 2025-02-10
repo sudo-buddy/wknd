@@ -1051,7 +1051,7 @@ export async function loadEager(document, options = {}) {
   ns.audiences = await serveAudience(document, pluginOptions);
   ns.experiments = await runExperiment(document, pluginOptions);
   ns.campaigns = await runCampaign(document, pluginOptions);
-  ns.audienceLibrary = Object.keys(options.audiences);
+  ns.audienceLibrary = options.audiences;
 
   // Backward compatibility
   ns.experiment = ns.experiments.find((e) => e.type === 'page');
