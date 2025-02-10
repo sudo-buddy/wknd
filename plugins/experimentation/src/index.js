@@ -683,6 +683,8 @@ export async function loadEager(document, options, context) {
   context.sampleRUM.always.on('audiences', adjustedRumSamplingRate('audiences', options, context));
   context.sampleRUM.always.on('campaign', adjustedRumSamplingRate('campaign', options, context));
   context.sampleRUM.always.on('experiment', adjustedRumSamplingRate('experiment', options, context));
+  window.hlx.audieneLibrary = Object.keys(options.audiences);
+  
   let res = await runCampaign(document, options, context);
   if (!res) {
     res = await runExperiment(document, options, context);
