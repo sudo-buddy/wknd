@@ -1,14 +1,28 @@
 export function initAEMExperimentation() {
     console.log('[AEM Exp Debug] Waiting for plugin initialization...');
     
-    // Check if plugin has completed its lifecycle
+    // Check if plugin has completed both eager and lazy phases
     const checkPluginStatus = () => {
+        // Check if eager phase is complete
         if (!window.hlx?.experiments) {
-            console.log('[AEM Exp Debug] Plugin not ready, waiting...');
+            console.log('[AEM Exp Debug] Plugin eager phase not ready, waiting...');
             setTimeout(checkPluginStatus, 100);
             return;
         }
 
+        // Check if lazy phase is complete by looking for our message event listener
+        const listeners = window.getEventListeners?.('message') || [];
+        const hasLazyListener = listeners.some(l => 
+            l.listener.toString().includes('hlx:experimentation-get-config')
+        );
+
+        if (!hasLazyListener) {
+            console.log('[AEM Exp Debug] Plugin lazy phase not ready, waiting...');
+            setTimeout(checkPluginStatus, 100);
+            return;
+        }
+
+        console.log('[AEM Exp Debug] Plugin fully initialized');
         const hasExperimentParams = checkExperimentParams();
         initSidekickListeners();
         
