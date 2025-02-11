@@ -11,7 +11,11 @@ export function initAEMExperimentation() {
 
         console.log('[AEM Exp Debug] Plugin eager phase complete');
         const hasExperimentParams = checkExperimentParams();
-        initSidekickListeners();
+        
+        // Only proceed with initialization if we're not handling a simulation
+        if (!isHandlingSimulation) {
+            initSidekickListeners();
+        }
         
         if (hasExperimentParams) {
             loadAEMExperimentationApp()
