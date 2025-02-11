@@ -1,37 +1,43 @@
 export function initAEMExperimentation() {
     console.log('[AEM Exp Debug] Waiting for plugin initialization...');
     
-    // Check if plugin eager phase is complete
-    const checkPluginStatus = () => {
-        if (!window.hlx?.experiments) {
-            console.log('[AEM Exp Debug] Plugin eager phase not ready, waiting...');
-            setTimeout(checkPluginStatus, 100);
-            return;
+    const experimentationComplete = new Promise((resolve) => {
+        // First check if experiments exist
+        if (window.hlx?.experiments) {
+            const expectedEvents = window.hlx.experiments.length;
+            let receivedEvents = 0;
+            
+            const handler = () => {
+                receivedEvents++;
+                if (receivedEvents >= expectedEvents) {
+                    document.removeEventListener('aem:experimentation', handler);
+                    resolve();
+                }
+            };
+            
+            document.addEventListener('aem:experimentation', handler);
+            
+            // Fallback timeout in case not all events fire
+            setTimeout(() => {
+                document.removeEventListener('aem:experimentation', handler);
+                resolve();
+            }, 2000);
+            
+        } else {
+            // If no experiments, resolve immediately
+            resolve();
         }
+    });
 
-        console.log('[AEM Exp Debug] Plugin eager phase complete');
+    experimentationComplete.then(() => {
+        console.log('[AEM Exp Debug] All experimentation events received');
         const hasExperimentParams = checkExperimentParams();
-        
-        // Only proceed with initialization if we're not handling a simulation
-        if (!isHandlingSimulation) {
-            initSidekickListeners();
-        }
+        initSidekickListeners();
         
         if (hasExperimentParams) {
-            loadAEMExperimentationApp()
-                .then(() => {
-                    const panel = document.getElementById('aemExperimentation');
-                    if (panel) {
-                        panel.classList.remove('aemExperimentationHidden');
-                    }
-                })
-                .catch((error) => {
-                    console.error('[AEM Exp] Error loading app:', error);
-                });
+            loadAEMExperimentationApp();
         }
-    };
-
-    checkPluginStatus();
+    });
 }
 
 export function checkExperimentParams() {
