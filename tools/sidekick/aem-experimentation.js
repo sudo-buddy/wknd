@@ -1,30 +1,46 @@
 export function initAEMExperimentation() {
     console.log('[AEM Exp Debug] Waiting for content modifications...');
-    // Wait for any pending content modifications
-    if (window.hlx?.experiments?.length) {
-        const hasModifications = window.hlx.experiments.some(exp => exp.status === 'loading');
-        if (hasModifications) {
-            console.log('[AEM Exp Debug] Detected pending modifications, deferring app load');
-            setTimeout(initAEMExperimentation, 100);
-            return;
+    
+    // Create a promise that resolves when experimentation events are done
+    const experimentationComplete = new Promise((resolve) => {
+        let eventCount = 0;
+        const handler = () => {
+            eventCount++;
+            console.log('[AEM Exp Debug] Received experimentation event:', eventCount);
+            // Remove listener after we've received all expected events
+            if (eventCount >= 2) {
+                document.removeEventListener('aem:experimentation', handler);
+                resolve();
+            }
+        };
+        document.addEventListener('aem:experimentation', handler);
+        
+        // Fallback timeout in case we don't receive all events
+        setTimeout(() => {
+            document.removeEventListener('aem:experimentation', handler);
+            resolve();
+        }, 2000);
+    });
+
+    // Wait for experimentation events before proceeding
+    experimentationComplete.then(() => {
+        console.log('[AEM Exp Debug] All experimentation events received');
+        const hasExperimentParams = checkExperimentParams();
+        initSidekickListeners();
+        
+        if (hasExperimentParams) {
+            loadAEMExperimentationApp()
+                .then(() => {
+                    const panel = document.getElementById('aemExperimentation');
+                    if (panel) {
+                        panel.classList.remove('aemExperimentationHidden');
+                    }
+                })
+                .catch((error) => {
+                    console.error('[AEM Exp] Error loading app:', error);
+                });
         }
-    }
-    
-    const hasExperimentParams = checkExperimentParams();
-    initSidekickListeners();
-    
-    if (hasExperimentParams) {
-        loadAEMExperimentationApp()
-            .then(() => {
-                const panel = document.getElementById('aemExperimentation');
-                if (panel) {
-                    panel.classList.remove('aemExperimentationHidden');
-                }
-            })
-            .catch((error) => {
-                console.error('[AEM Exp] Error loading app:', error);
-            });
-    }
+    });
 }
 
 export function checkExperimentParams() {
