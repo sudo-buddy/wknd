@@ -1,30 +1,14 @@
 export function initAEMExperimentation() {
-    console.log('[AEM Exp Debug] Waiting for content modifications...');
+    console.log('[AEM Exp Debug] Waiting for plugin initialization...');
     
-    // Create a promise that resolves when experimentation events are done
-    const experimentationComplete = new Promise((resolve) => {
-        let eventCount = 0;
-        const handler = () => {
-            eventCount++;
-            console.log('[AEM Exp Debug] Received experimentation event:', eventCount);
-            // Remove listener after we've received all expected events
-            if (eventCount >= 2) {
-                document.removeEventListener('aem:experimentation', handler);
-                resolve();
-            }
-        };
-        document.addEventListener('aem:experimentation', handler);
-        
-        // Fallback timeout in case we don't receive all events
-        setTimeout(() => {
-            document.removeEventListener('aem:experimentation', handler);
-            resolve();
-        }, 2000);
-    });
+    // Check if plugin has completed its lifecycle
+    const checkPluginStatus = () => {
+        if (!window.hlx?.experiments) {
+            console.log('[AEM Exp Debug] Plugin not ready, waiting...');
+            setTimeout(checkPluginStatus, 100);
+            return;
+        }
 
-    // Wait for experimentation events before proceeding
-    experimentationComplete.then(() => {
-        console.log('[AEM Exp Debug] All experimentation events received');
         const hasExperimentParams = checkExperimentParams();
         initSidekickListeners();
         
@@ -40,7 +24,9 @@ export function initAEMExperimentation() {
                     console.error('[AEM Exp] Error loading app:', error);
                 });
         }
-    });
+    };
+
+    checkPluginStatus();
 }
 
 export function checkExperimentParams() {
