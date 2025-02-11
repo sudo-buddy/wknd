@@ -1,4 +1,15 @@
 export function initAEMExperimentation() {
+    console.log('[AEM Exp Debug] Waiting for content modifications...');
+    // Wait for any pending content modifications
+    if (window.hlx?.experiments?.length) {
+        const hasModifications = window.hlx.experiments.some(exp => exp.status === 'loading');
+        if (hasModifications) {
+            console.log('[AEM Exp Debug] Detected pending modifications, deferring app load');
+            setTimeout(initAEMExperimentation, 100);
+            return;
+        }
+    }
+    
     const hasExperimentParams = checkExperimentParams();
     initSidekickListeners();
     
