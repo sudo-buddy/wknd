@@ -1,6 +1,19 @@
 export function initAEMExperimentation() {
-    checkExperimentParams();
+    const hasExperimentParams = checkExperimentParams();
     initSidekickListeners();
+    
+    if (hasExperimentParams) {
+        loadAEMExperimentationApp()
+            .then(() => {
+                const panel = document.getElementById('aemExperimentation');
+                if (panel) {
+                    panel.classList.remove('aemExperimentationHidden');
+                }
+            })
+            .catch((error) => {
+                console.error('[AEM Exp] Error loading app:', error);
+            });
+    }
 }
 
 export function checkExperimentParams() {
@@ -23,26 +36,15 @@ export function checkExperimentParams() {
                 experimentId: experimentId,
                 variantId: variantId || 'control',
             };
-            console.log('[AEM Exp] Setting simulation state:', simulationState);
-
+            
             sessionStorage.setItem('simulationState', JSON.stringify(simulationState));
             sessionStorage.setItem('aemExperimentation_autoOpen', 'true');
             sessionStorage.setItem('aemExperimentation_experimentId', experimentId);
             sessionStorage.setItem('aemExperimentation_variantId', variantId || 'control');
-
-            // Load app and force show
-            loadAEMExperimentationApp()
-                .then(() => {
-                    const panel = document.getElementById('aemExperimentation');
-                    if (panel) {
-                        panel.classList.remove('aemExperimentationHidden');
-                    }
-                })
-                .catch((error) => {
-                    console.error('[AEM Exp] Error loading app:', error);
-                });
+            return true;
         }
     }
+    return false;
 }
 
 export function initSidekickListeners() {
