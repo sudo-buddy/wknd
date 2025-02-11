@@ -241,6 +241,7 @@ export function addFavIcon(href) {
  * loads everything that doesn't need to be delayed.
  */
 async function loadLazy(doc) {
+  console.log('[AEM Exp Debug] Starting loadLazy');
   const main = doc.querySelector('main');
   await loadBlocks(main);
 
@@ -272,12 +273,13 @@ async function loadLazy(doc) {
   // Mark customer as having viewed the page once
   localStorage.setItem('franklin-visitor-returning', true);
  
-  // Run plugins first
+  console.log('[AEM Exp Debug] Running lazy plugins');
   await window.hlx.plugins.run('loadLazy');
   
-  // Then load experimentation after everything else is ready
+  console.log('[AEM Exp Debug] Initializing AEM Experimentation');
   const { initAEMExperimentation } = await import('../tools/sidekick/aem-experimentation.js');
   initAEMExperimentation();
+  console.log('[AEM Exp Debug] AEM Experimentation initialized');
 }
 
 /**

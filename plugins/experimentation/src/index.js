@@ -1056,6 +1056,8 @@ export async function loadEager(document, options = {}) {
   ns.experiment = ns.experiments.find((e) => e.type === 'page');
   ns.audience = ns.audiences.find((e) => e.type === 'page');
   ns.campaign = ns.campaigns.find((e) => e.type === 'page');
+
+  console.log('[AEM Exp Debug] experiment plugin: Loaded eager finished');
 }
 
 export async function loadLazy(document, options = {}) {
@@ -1065,6 +1067,7 @@ export async function loadLazy(document, options = {}) {
     return;
   }
 
+  console.log('[AEM Exp Debug] experiment plugin: Loading lazy');
   // Add event listener for experimentation config requests
   window.addEventListener('message', (event) => {
     if (event.data?.type === 'hlx:experimentation-get-config') {

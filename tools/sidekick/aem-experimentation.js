@@ -4,14 +4,17 @@ export function initAEMExperimentation() {
 }
 
 export function checkExperimentParams() {
+    console.log('[AEM Exp Debug] Checking experiment params');
     const urlParams = new URLSearchParams(window.location.search);
     const experimentParam = urlParams.get('experiment');
 
     if (experimentParam && !isHandlingSimulation) {
+        console.log('[AEM Exp Debug] Found experiment param:', experimentParam);
         const decodedParam = decodeURIComponent(experimentParam);
 
         const [experimentId, variantId] = decodedParam.split('/');
         if (experimentId) {
+            console.log('[AEM Exp Debug] Starting simulation for:', { experimentId, variantId });
             isHandlingSimulation = true;
             // Set simulation state
             const simulationState = {
@@ -72,20 +75,25 @@ function toggleExperimentPanel(forceShow = false) {
 }
 
 function loadAEMExperimentationApp() {
+    console.log('[AEM Exp Debug] Loading AEM Experimentation App');
     if (scriptLoadPromise) {
+        console.log('[AEM Exp Debug] Using existing script load promise');
         return scriptLoadPromise;
     }
 
     scriptLoadPromise = new Promise((resolve, reject) => {
         if (isAEMExperimentationAppLoaded) {
+            console.log('[AEM Exp Debug] App already loaded');
             resolve();
             return;
         }
 
+        console.log('[AEM Exp Debug] Creating script element');
         const script = document.createElement('script');
         script.src = 'https://experience-qa.adobe.com/solutions/ExpSuccess-aem-experimentation-mfe/static-assets/resources/sidekick/client.js?source=plugin';
 
         script.onload = function () {
+            console.log('[AEM Exp Debug] Script loaded successfully');
             isAEMExperimentationAppLoaded = true;
             // Wait for container to be created
             const waitForContainer = (retries = 0, maxRetries = 20) => {
