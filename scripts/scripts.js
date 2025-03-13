@@ -249,6 +249,7 @@ async function loadLazy(doc) {
   localStorage.setItem('franklin-visitor-returning', true);
 
   window.hlx.plugins.run('loadLazy');
+  import('../tools/sidekick/aem-experimentation.js');
 }
 
 /**
